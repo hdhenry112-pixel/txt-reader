@@ -151,3 +151,54 @@ button.toast { text-align: center; }
   background: var(--accent-strong);
   color: #fff;
 }
+
+/* M4 起：弹层的补充样式 */
+.dialog-backdrop[hidden] { display: none; }
+
+.dialog h3 {
+  margin: 18px 0 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+}
+
+.dialog-buttons.vertical {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dialog-buttons.vertical button { flex: none; }
+
+.dialog-buttons button:disabled { opacity: 0.5; }
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 15px;
+}
+
+.check-row input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent-main);
+}
+
+.check-row-note {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.file-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+}

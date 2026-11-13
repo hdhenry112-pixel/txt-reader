@@ -3,7 +3,7 @@
 // 版本号规则（详见 CLAUDE.md）：
 //   1. 下面这一行是版本号的唯一来源。每次发布都必须改它。
 //   2. 新增、删除、改名任何 App 文件时，同步修改 ASSETS 清单。
-const VERSION = '0.3.2';
+const VERSION = '0.4.1';
 
 const CACHE_PREFIX = 'txt-reader-v';
 const CACHE = CACHE_PREFIX + VERSION;
@@ -19,6 +19,9 @@ const ASSETS = [
   'js/app.js',
   'css/reader.css',
   'js/shelf.js',
+  'js/book-actions.js',
+  'js/backup.js',
+  'js/backup-panel.js',
   'js/theme-boot.js',
   'js/settings.js',
   'js/settings-panel.js',

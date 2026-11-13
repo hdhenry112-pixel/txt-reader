@@ -3,6 +3,7 @@ import { setupShelf, renderShelf } from './shelf.js';
 import { setupReader, openReader } from './reader/reader.js';
 import { recoverJournal } from './storage/progress.js';
 import { loadSettings } from './settings.js';
+import { setupBackupPanel } from './backup-panel.js';
 import { showActionToast } from './ui/toast.js';
 
 const UPDATE_TOAST_ID = 'update-toast';
@@ -81,6 +82,7 @@ await loadSettings().catch(() => {});
 setupReader({ onClose: renderShelf });
 // 先把上次没来得及写进数据库的阅读位置补上，再显示书架，这样书架上的进度是最新的。
 await recoverJournal().catch(() => {});
+setupBackupPanel({ onRestored: renderShelf });
 await setupShelf({ onOpen: openReader });
 // 启动完成的标记：按钮都绑好了，书架也画出来了。自动化测试靠它知道什么时候可以开始操作。
 document.documentElement.dataset.ready = '1';

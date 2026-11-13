@@ -6,6 +6,7 @@ import { FILES, para } from '../gen-fixtures.mjs';
 import {
   shot, watchPage, waitForServiceWorker, fixturePath,
   chooseFiles, waitImportDone, storedBook, storedParas, shelfTitles,
+  openDeleteConfirm,
 } from './helpers.js';
 
 const path = (file) => fixturePath(FILES[file].name);
@@ -170,14 +171,14 @@ test('删除：取消则不删；确认后书、目录、章节都删除，刷�
   await expect(page.locator('.book')).toHaveCount(2);
   const f2Id = (await storedBook(page, titleOf('F2'))).book.id;
 
-  await page.getByRole('button', { name: `删除《${titleOf('F2')}》` }).click();
+  await openDeleteConfirm(page, titleOf('F2'));
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText(`删除《${titleOf('F2')}》？`);
   await shot(page, 'M1', '06-删除确认框');
   await dialog.getByRole('button', { name: '取消' }).click();
   await expect(page.locator('.book')).toHaveCount(2);
 
-  await page.getByRole('button', { name: `删除《${titleOf('F2')}》` }).click();
+  await openDeleteConfirm(page, titleOf('F2'));
   await page.getByRole('dialog').getByRole('button', { name: '删除' }).click();
   await expect(page.locator('.book')).toHaveCount(1);
   expect(await shelfTitles(page)).toEqual([titleOf('F1')]);

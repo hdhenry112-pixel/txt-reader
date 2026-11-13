@@ -1,6 +1,6 @@
 // 页面内的弹层。不用浏览器原生的 alert / confirm。
 
-function open({ title, lines = [], buttons }) {
+function open({ title, lines = [], buttons, vertical = false }) {
   return new Promise((resolve) => {
     const backdrop = document.createElement('div');
     backdrop.className = 'dialog-backdrop';
@@ -22,7 +22,7 @@ function open({ title, lines = [], buttons }) {
     }
 
     const row = document.createElement('div');
-    row.className = 'dialog-buttons';
+    row.className = vertical ? 'dialog-buttons vertical' : 'dialog-buttons';
     for (const { label, value, kind } of buttons) {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -49,6 +49,19 @@ export function confirmDialog({ title, lines, okText = '确定', cancelText = '�
       { label: cancelText, value: false },
       { label: okText, value: true, kind: danger ? 'danger' : 'primary' },
     ],
+  });
+}
+
+/**
+ * 从几个选项里选一个，选项竖着排。返回所选项的 value；点「取消」返回 null。
+ * @param {{ title: string, lines?: string[], choices: { label: string, value: any, kind?: string }[] }} options
+ */
+export function choiceDialog({ title, lines, choices }) {
+  return open({
+    title,
+    lines,
+    vertical: true,
+    buttons: [...choices, { label: '取消', value: null }],
   });
 }
 

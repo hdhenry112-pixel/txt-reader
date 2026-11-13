@@ -1,8 +1,9 @@
-// 书架页：书的列表、导入、删除。
-import { listBooks, deleteBook } from './storage/books.js';
-import { getAllProgress } from './storage/progress.js';
+// 书架页：书的列表、导入、等待重新导入的提示。
+import { listBooks } from './storage/books.js';
+import { getAllProgress, listPending } from './storage/progress.js';
 import { importFiles } from './importer/importer.js';
-import { confirmDialog, infoDialog } from './ui/dialog.js';
+import { setupBookActions, openBookActions } from './book-actions.js';
+import { infoDialog } from './ui/dialog.js';
 import { showToast } from './ui/toast.js';
 
 const $ = (id) => document.getElementById(id);
@@ -59,34 +60,32 @@ function bookRow(book, percent) {
   bar.append(fill);
   info.append(bar);
 
-  const del = document.createElement('button');
-  del.type = 'button';
-  del.className = 'book-delete';
-  del.textContent = '删除';
-  del.setAttribute('aria-label', `删除《${book.title}》`);
-  del.addEventListener('click', () => onDelete(book));
+  const more = document.createElement('button');
+  more.type = 'button';
+  more.className = 'book-more';
+  more.textContent = '⋯';
+  more.setAttribute('aria-label', `《${book.title}》的更多操作`);
+  more.addEventListener('click', () => openBookActions(book));
 
-  row.append(info, del);
+  row.append(info, more);
   return row;
 }
 
+/** 从「不含正文」的备份恢复后，还没重新导入的书。 */
+function renderPending(pending) {
+  const notice = $('pending-notice');
+  notice.hidden = pending.length === 0;
+  notice.textContent = pending.length
+    ? `有 ${pending.length} 本书等待重新导入：${pending.map((p) => `《${p.title}》`).join('')}。导入对应的 txt 后会自动接回阅读进度。`
+    : '';
+}
+
 export async function renderShelf() {
-  const [books, progress] = await Promise.all([listBooks(), getAllProgress()]);
+  const [books, progress, pending] = await Promise.all([listBooks(), getAllProgress(), listPending()]);
   const rows = sortBooks(books).map((book) => bookRow(book, progress.get(book.id)?.percent ?? 0));
   $('shelf-list').replaceChildren(...rows);
   $('shelf-empty').hidden = books.length > 0;
-}
-
-async function onDelete(book) {
-  const ok = await confirmDialog({
-    title: `删除《${book.title}》？`,
-    lines: ['这本书的正文和阅读进度会从手机里删除，不能恢复。'],
-    okText: '删除',
-    danger: true,
-  });
-  if (!ok) return;
-  await deleteBook(book.id);
-  await renderShelf();
+  renderPending(pending);
 }
 
 /** 把导入结果整理成给用户看的文字。 */
@@ -130,5 +129,6 @@ export function setupShelf(handlers) {
   onOpen = handlers.onOpen;
   const input = $('import-input');
   input.addEventListener('change', () => onFilesChosen(input));
+  setupBookActions({ onChanged: renderShelf });
   return renderShelf();
 }

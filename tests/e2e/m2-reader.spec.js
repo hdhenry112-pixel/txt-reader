@@ -1,7 +1,7 @@
 // M2：阅读页（滚动模式）、目录、进度保存与恢复。
 import { test, expect } from '@playwright/test';
 import { para } from '../gen-fixtures.mjs';
-import { shot, watchPage, waitForServiceWorker } from './helpers.js';
+import { shot, watchPage, waitForServiceWorker, openDeleteConfirm } from './helpers.js';
 import {
   titleOf, F1_TITLES, importBooks, presetMode, openBook, tapAt, showMenu, gotoChapter,
   backToShelf, expectPercent, domParas, storedProgress,
@@ -235,7 +235,7 @@ test('删除读过的书后重新导入，进度从 0% 开始', async ({ page })
   await backToShelf(page);
   await expectPercent(page, 'F2', '已读 60%'); // 前 3 章 1500 ÷ 2500
 
-  await page.getByRole('button', { name: `删除《${titleOf('F2')}》` }).click();
+  await openDeleteConfirm(page, titleOf('F2'));
   await page.getByRole('dialog').getByRole('button', { name: '删除' }).click();
   await expect(page.locator('.book')).toHaveCount(0);
   await importBooks(page, ['F2']);

@@ -106,3 +106,40 @@ button.book-info {
 .book-title,
 .book-bar,
 .book-bar-fill { display: block; }
+
+/* M4 起 */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ghost-button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--accent-main);
+  font-size: 15px;
+}
+
+.pending-notice {
+  margin: 0 20px 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--accent-strong);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.pending-notice[hidden] { display: none; }
+
+.book-more {
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--accent-sub);
+  font-size: 22px;
+  line-height: 1;
+}

@@ -100,6 +100,36 @@ export async function shelfTitles(page) {
   return page.locator('.book-title').allTextContents();
 }
 
+/** 打开某本书的「更多操作」菜单。 */
+export async function openBookMenu(page, title) {
+  await page.getByRole('button', { name: `《${title}》的更多操作` }).click();
+  await expect(page.getByRole('dialog', { name: `《${title}》` })).toBeVisible();
+}
+
+/** 书的更多操作 → 删除，停在「删除《书名》？」的确认框上。 */
+export async function openDeleteConfirm(page, title) {
+  await openBookMenu(page, title);
+  await page.getByRole('dialog').getByRole('button', { name: '删除' }).click();
+  await expect(page.getByRole('dialog', { name: `删除《${title}》？` })).toBeVisible();
+}
+
+/** 清空 App 在这个浏览器里的全部数据（数据库和 localStorage），然后重新加载。相当于换了一台新手机。 */
+export async function wipeAllData(page) {
+  await page.evaluate(async () => {
+    const db = await import(new URL('js/storage/db.js', document.baseURI).href);
+    (await db.getDb()).close();
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(db.DB_NAME);
+      request.onsuccess = resolve;
+      request.onerror = () => reject(request.error);
+      request.onblocked = () => reject(new Error('删除数据库被占用'));
+    });
+    localStorage.clear();
+  });
+  await page.reload();
+  await waitAppReady(page);
+}
+
 /** 让测试服务器假装发布了某个版本；不传参数则恢复真实版本。 */
 export async function setServerVersion(request, version) {
   const query = version ? `?v=${version}` : '';

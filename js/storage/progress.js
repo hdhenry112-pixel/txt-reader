@@ -38,6 +38,47 @@ export async function saveProgress(bookId, { chapterIdx, offset, percent }) {
   clearJournalIfSame({ bookId, chapterIdx, offset });
 }
 
+/**
+ * 原样写入一条进度记录，不改「最近阅读时间」（从备份恢复、认领等待中的进度时用）。
+ * @param {{ bookId: string, chapterIdx: number, offset: number, percent: number, updatedAt?: number }} record
+ */
+export async function putProgressRecord(record) {
+  const db = await getDb();
+  const tx = db.transaction('progress', 'readwrite');
+  tx.objectStore('progress').put({ updatedAt: Date.now(), ...record });
+  await committed(tx);
+}
+
+// ---------- 等待认领的进度（pending 仓库）----------
+// 从「不含正文」的备份恢复时，书的正文不在手机里，进度先放在这里。
+// 之后导入的 txt 如果「文件名 + 字节数」对得上，就把进度接回去。
+
+export const fileKeyOf = (fileName, fileSize) => `${fileName}|${fileSize}`;
+
+/** 所有等待重新导入的书：[{ fileKey, title, progress, lastReadAt }]。 */
+export async function listPending() {
+  const db = await getDb();
+  return done(db.transaction('pending').objectStore('pending').getAll());
+}
+
+export async function putPending(entry) {
+  const db = await getDb();
+  const tx = db.transaction('pending', 'readwrite');
+  tx.objectStore('pending').put(entry);
+  await committed(tx);
+}
+
+/** 取出并删除一条等待中的记录；没有则返回 undefined。 */
+export async function takePending(fileKey) {
+  const db = await getDb();
+  const tx = db.transaction('pending', 'readwrite');
+  const store = tx.objectStore('pending');
+  const entry = await done(store.get(fileKey));
+  if (entry) store.delete(fileKey);
+  await committed(tx);
+  return entry;
+}
+
 // ---------- 位置日志 ----------
 // 页面关闭或 App 被系统结束时，IndexedDB 的写入是异步的，会被中途掐断，最后一次位置就丢了。
 // localStorage 的写入是同步的，调用返回时已经落盘。所以每次保存进度都先在 localStorage 记一笔，

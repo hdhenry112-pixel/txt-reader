@@ -23,14 +23,20 @@
   <main id="view-shelf" class="view">
     <header class="topbar">
       <h1>书架</h1>
-      <label class="import-button">
+      <div class="topbar-actions">
+        <button id="backup-button" class="ghost-button" type="button">备份</button>
+        <label class="import-button">
         导入
         <!-- 故意不写 accept：写了以后 iOS 文件选择界面里 Google Drive 位置显示 Content Unavailable。
              文件类型改为选完之后在 importer.js 里按扩展名检查。见 spec ⑧ C2。 -->
         <input id="import-input" class="visually-hidden" type="file" multiple>
       </label>
+      </div>
     </header>
     <p id="import-status" class="import-status" role="status" hidden></p>
+    <p id="pending-notice" class="pending-notice" role="status" hidden></p>
+    <!-- 「换编码重新导入」时用来重新选原文件。同样不写 accept。 -->
+    <input id="reimport-input" class="visually-hidden" type="file">
     <section id="shelf-list" class="shelf-list" aria-label="书架"></section>
     <!-- 默认隐藏：书架读完之后确认没有书才显示，免得有书的人每次启动先看到一眼「还没有书」。 -->
     <p id="shelf-empty" class="shelf-empty" hidden>还没有书</p>
@@ -104,6 +110,43 @@
       <ol id="toc-list" class="toc-list"></ol>
     </aside>
   </main>
+
+  <div id="backup-panel" class="dialog-backdrop" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-label="备份与恢复">
+      <h2>备份与恢复</h2>
+
+      <h3>导出</h3>
+      <p>导出书架、阅读进度和设置。</p>
+      <label class="check-row">
+        <input id="backup-include-text" type="checkbox">
+        <span>包含书的正文</span>
+        <span id="backup-size" class="check-row-note"></span>
+      </label>
+      <div class="dialog-buttons">
+        <button id="backup-build" type="button" data-kind="primary">生成备份</button>
+      </div>
+      <div id="backup-ready" hidden>
+        <p id="backup-ready-text"></p>
+        <div class="dialog-buttons">
+          <button id="backup-save" type="button" data-kind="primary">保存到文件</button>
+        </div>
+      </div>
+
+      <h3>恢复</h3>
+      <p>从备份文件恢复。书架上已有的书不会被删除。</p>
+      <div class="dialog-buttons">
+        <!-- 同样不写 accept，原因见上面的导入按钮。 -->
+        <label class="file-button">
+          选择备份文件
+          <input id="restore-input" class="visually-hidden" type="file">
+        </label>
+      </div>
+
+      <div class="dialog-buttons">
+        <button id="backup-close" type="button">关闭</button>
+      </div>
+    </div>
+  </div>
 
   <div id="toast-host" class="toast-host" aria-live="polite"></div>
 
