@@ -8,7 +8,8 @@
 
 **需求和验收标准**：[docs/spec-mvp.md](docs/spec-mvp.md)（2026-11-13 确认）。改需求要在 spec 末尾的「变更记录」里登记，不许悄悄改。
 
-**当前进度**：M0（骨架和部署链路）完成。下一步 M1（导入、分章、书架）。
+**当前进度**：M0、M1 完成（导入、分章、存储、书架、删除），线上版本 0.1.1。下一步 M2（滚动模式、目录、进度）。
+书架上的书目前还点不开，阅读页在 M2 加入。
 
 ---
 
@@ -55,16 +56,29 @@ css/
   base.css              布局、safe-area、提示条
   shelf.css             书架页
 js/
-  app.js                入口：注册 Service Worker、新版本提示、禁止缩放
-  shelf.js              书架页（M0 只有空状态）
-  ui/toast.js           提示条
+  app.js                入口：注册 Service Worker、新版本提示、禁止缩放、申请持久存储
+  shelf.js              书架页：列表、排序、导入入口、删除
+  normalize.js          段落整理（纯函数）
+  chapterizer.js        分章（纯函数），含切分字数等常量
+  importer/
+    decode.js           编码判断与解码（纯函数）
+    parse.js            字节 → 可入库的书（纯函数，串起 decode / normalize / chapterizer）
+    importer.js         导入流程：逐本处理、重复判断、入库
+  storage/
+    db.js               打开数据库、迁移函数数组
+    books.js            books / tocs / chapters 的读写
+    progress.js         progress 的读取（保存在 M2 加入）
+  ui/
+    dialog.js           页面内的确认框和信息框
+    toast.js            提示条
 icons/                  由 tests/gen-icons.mjs 生成
 tests/
   serve.mjs             本地测试服务器，挂在 /txt-reader/ 子路径，可模拟「发布了新版本」
   gen-fixtures.mjs      生成 spec ④ 的测试文件 F1–F9 到 tests/fixtures/（不进仓库）
   gen-icons.mjs         生成图标
   playwright.config.js  WebKit + iPhone 15 视口
-  e2e/                  端到端测试
+  unit/                 纯函数的单元测试（node:test），直接 import js/ 下的模块
+  e2e/                  端到端测试；helpers.js 里有导入文件、读 IndexedDB 的公共函数
 docs/
   spec-mvp.md           需求和验收标准
   DEPLOY.md             部署步骤、iPhone 添加到主屏幕步骤
@@ -84,10 +98,25 @@ docs/
 
 ## ④ 数据模型（IndexedDB）
 
-**M0 还没有建数据库。** 计划的结构在 spec 3.3 节：库名 `txt-reader`，schema 版本 1，
-仓库 `books` / `tocs` / `chapters` / `progress` / `settings` / `pending`。M1 落地后把实际结构写到这里。
+库名 `txt-reader`，**schema 版本 1**（= `js/storage/db.js` 里 `MIGRATIONS` 数组的长度）。
 
-迁移规则（M1 起生效）：
+| 仓库 | 主键 | 字段 | 状态 |
+|---|---|---|---|
+| `books` | `id`（`crypto.randomUUID()`） | `title`（文件名去掉 .txt）、`fileName`、`fileSize`（字节）、`encoding`（`utf-8` / `gbk` / `big5` / `utf-16le` / `utf-16be`）、`encodingSuspect`（布尔）、`totalLen`（全书字数）、`chapterCount`、`addedAt`（毫秒时间戳）、`lastReadAt`（没读过为 `null`） | 在用 |
+| `tocs` | `bookId` | `entries`：`[{ title, len }]`，`len` 是该章字数 | 在用 |
+| `chapters` | `[bookId, idx]` | `text`：该章所有段落用 `
+` 连接，不含标题行 | 在用 |
+| `progress` | `bookId` | `chapterIdx`、`offset`、`percent`、`updatedAt` | 已建仓库，M2 开始写入 |
+| `settings` | `key`（固定 `global`） | `mode`、`fontSize`、`lineHeight`、`margin`、`theme` | 已建仓库，M3 开始写入 |
+| `pending` | `fileKey`（`文件名|字节数`） | 等待认领的进度 | 已建仓库，M4 开始写入 |
+
+约定：
+- 「字数」一律指 JS 字符串的 `length`，不含标题行、换行和缩进
+- 一本书的写入（元数据 + 目录 + 全部章节）在同一个事务里，要么全成要么全不写
+- 重复导入的判断：`fileName` 和 `fileSize` 都相同
+- 0 字的章是合法的（标题后面紧跟另一个标题，比如「第一卷」后面直接是「第一章」）
+
+迁移规则：
 - `js/storage/db.js` 里维护一个按版本号排列的迁移函数数组，升级时从旧版本逐级执行
 - 迁移只允许新增或转换，不允许清空已有仓库
 - 每次改 schema：版本号加 1、加一个迁移函数、加一条迁移测试（旧版本数据升级后书和进度不丢）
@@ -98,7 +127,7 @@ docs/
 
 - 版本号只有一处：`sw.js` 第一行的 `const VERSION = 'x.y.z';`。这一行的格式不要改，测试服务器靠它模拟新版本
 - **每次发布（push 到 main）只要 App 文件有变化，就必须改 `VERSION`**，否则已安装的手机拿不到新文件
-- 版本号写法：`0.<里程碑>.<该里程碑内第几次发布>`，例如 M1 的第 2 次发布是 `0.1.2`；MVP 完成时为 `1.0.0`
+- 版本号写法：`0.<里程碑>.<该里程碑内第几次发布>`，例如 M1 的第 1 次发布是 `0.1.1`、M2 的第 1 次是 `0.2.1`；MVP 完成时为 `1.0.0`。（M0 用的是 `0.1.0`，是这条规则定下来之前发的，属于例外）
 - 缓存名是 `txt-reader-v<VERSION>`；新版本激活时删除所有其他 `txt-reader-v*` 缓存
 - **新增、删除、改名任何 App 文件，都要同步改 `sw.js` 里的 `ASSETS` 清单。** 漏了的后果是离线时那个文件加载失败。「断网后重新加载且没有资源加载失败」这条端到端测试会抓到
 - 更新流程：新 worker 装好后停在 waiting → App 显示「有新版本，点击刷新」→ 用户点击 → 新 worker 接管 → 页面刷新。不自动 `skipWaiting`
@@ -126,5 +155,9 @@ docs/
   要用「`reg.waiting` 和 `reg.active` 同时存在」。
   实录：2026-11-13 M0，首次安装误弹「有新版本」。我第一次的判断（把 controller 的检查提前到 updatefound 时）是错的，
   打日志后才看到事件送达顺序。详见 `docs/test-reports/M0/report.md`。
+- **单元测试和端到端测试第一次就全绿时，要做反向验证。**
+  做法：故意把被测代码改坏一处（比如 `>=` 改成 `>`、从 `sw.js` 清单里删一个文件），确认对应的测试变红，再还原。
+  实录：2026-11-14 M1，38 项测试一次全过，做了 6 个改坏的版本，全部被抓到。记录在 `docs/test-reports/M1/report.md`。
+- **不要用 shell 的 heredoc 写含中文引号和反引号的长测试文件**，会在引号解析上出错且什么都不写入。用文件写入工具。
 - **Playwright 里断网后 `page.reload()` 失败时，旧页面内容还留在屏幕上。**
   所以离线测试不能只断言「书架文字可见」，还要断言 reload 本身没抛错、且页面里由脚本新填的内容（版本号）出现了。

@@ -3,7 +3,7 @@
 // 版本号规则（详见 CLAUDE.md）：
 //   1. 下面这一行是版本号的唯一来源。每次发布都必须改它。
 //   2. 新增、删除、改名任何 App 文件时，同步修改 ASSETS 清单。
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 
 const CACHE_PREFIX = 'txt-reader-v';
 const CACHE = CACHE_PREFIX + VERSION;
@@ -18,6 +18,15 @@ const ASSETS = [
   'css/shelf.css',
   'js/app.js',
   'js/shelf.js',
+  'js/chapterizer.js',
+  'js/normalize.js',
+  'js/importer/decode.js',
+  'js/importer/parse.js',
+  'js/importer/importer.js',
+  'js/storage/db.js',
+  'js/storage/books.js',
+  'js/storage/progress.js',
+  'js/ui/dialog.js',
   'js/ui/toast.js',
   'icons/apple-touch-icon.png',
   'icons/icon-192.png',

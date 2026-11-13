@@ -20,7 +20,12 @@
   <main id="view-shelf" class="view">
     <header class="topbar">
       <h1>书架</h1>
+      <label class="import-button">
+        导入
+        <input id="import-input" class="visually-hidden" type="file" accept=".txt,text/plain" multiple>
+      </label>
     </header>
+    <p id="import-status" class="import-status" role="status" hidden></p>
     <section id="shelf-list" class="shelf-list" aria-label="书架"></section>
     <p id="shelf-empty" class="shelf-empty">还没有书</p>
     <footer class="shelf-footer">版本 <span id="app-version">…</span></footer>

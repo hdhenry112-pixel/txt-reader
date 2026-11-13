@@ -1,5 +1,5 @@
 // 入口：启动页面、注册 Service Worker、提示新版本。
-import { renderShelf } from './shelf.js';
+import { setupShelf } from './shelf.js';
 import { showActionToast } from './ui/toast.js';
 
 const UPDATE_TOAST_ID = 'update-toast';
@@ -66,6 +66,12 @@ async function setupServiceWorker() {
   showVersion();
 }
 
+/** 申请持久存储，降低系统在空间紧张时清掉书和进度的可能。被拒绝也不影响使用。 */
+function requestPersistentStorage() {
+  navigator.storage?.persist?.().catch(() => {});
+}
+
 blockZoom();
-renderShelf();
+requestPersistentStorage();
+setupShelf();
 setupServiceWorker();
