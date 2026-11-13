@@ -169,3 +169,75 @@
   color: var(--accent-strong);
   font-weight: 600;
 }
+
+/* ---------- 翻页模式 ---------- */
+/* 分页用的栏宽、栏距、内边距由 js/reader/page-mode.js 按屏幕宽度算好后写在元素上。 */
+.reader[data-mode="page"] .reader-scroll {
+  overflow: hidden;
+  /* 这个模式下不需要浏览器自己处理任何滑动，全部交给脚本判断是翻页还是点击。 */
+  touch-action: none;
+}
+
+.reader[data-mode="page"] .reader-content {
+  will-change: transform;
+}
+
+/* 标题不要单独留在一页的最底下 */
+.reader[data-mode="page"] .chapter-title {
+  break-after: avoid;
+}
+
+/* ---------- 设置面板 ---------- */
+.settings-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* 贴在底部栏的上面。底部栏高度 = 44 按钮 + 上下各 8 内边距 + 底部安全区。 */
+  bottom: calc(env(safe-area-inset-bottom) + 61px);
+  z-index: 15;
+  padding: 8px calc(env(safe-area-inset-right) + 20px) 8px calc(env(safe-area-inset-left) + 20px);
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 15px;
+}
+
+.settings-panel[hidden] { display: none; }
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+}
+
+.setting-label { color: var(--text-dim); }
+
+.setting-choices,
+.setting-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-panel button {
+  min-width: 56px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.settings-panel button.selected {
+  border-color: var(--accent-main);
+  background: var(--accent-main);
+  color: #fff;
+}
+
+.settings-panel button:disabled { opacity: 0.35; }
+
+.setting-stepper span {
+  min-width: 40px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

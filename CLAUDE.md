@@ -8,8 +8,8 @@
 
 **需求和验收标准**：[docs/spec-mvp.md](docs/spec-mvp.md)（2026-11-13 确认）。改需求要在 spec 末尾的「变更记录」里登记，不许悄悄改。
 
-**当前进度**：M0、M1、M2 完成（导入、分章、书架、滚动模式阅读、目录、进度保存与恢复、屏幕常亮），线上版本 0.2.1。
-下一步 M3（翻页模式、设置面板、三个主题）。目前只有滚动模式，字号行距是写死的默认值。
+**当前进度**：M0–M3 完成（导入、分章、书架、滚动和翻页两种阅读模式、目录、进度保存与恢复、设置面板、三个主题、屏幕常亮），线上版本 0.3.1。
+下一步 M4（大文件、备份恢复、换编码重新导入）。Henry 2026-11-14 提出在 M4 加入 PDF 阅读，需求还没问清、没进 spec，**未确认前不要动手做 PDF**。
 
 ---
 
@@ -60,10 +60,14 @@ js/
   app.js                入口：注册 Service Worker、新版本提示、禁止缩放、申请持久存储
   shelf.js              书架页：列表、排序、导入入口、删除、点书打开
   wakelock.js           屏幕常亮
+  theme-boot.js         普通脚本（非模块），在 <head> 里同步执行：启动时先套上次的主题，避免闪白底
+  settings.js           设置的默认值、范围、读取、保存、套用主题
+  settings-panel.js     设置面板的界面
   reader/
-    reader.js           阅读页控制：打开书、加载章节、保存和恢复进度
+    reader.js           阅读页控制：打开书、加载章节、切换模式、套用设置、保存和恢复进度
     position.js         进度百分比计算；在段落里找「第一个可见的字」和「第 N 个字在哪」
     scroll-mode.js      滚动模式
+    page-mode.js        翻页模式：CSS columns 分页、点击区域、滑动
     menu.js             顶部栏和底部栏
     toc.js              目录面板
   normalize.js          段落整理（纯函数）
@@ -87,7 +91,7 @@ tests/
   mutate.mjs            反向验证工具：把源码改坏一处 / 还原（见 ⑧）
   playwright.config.js  WebKit + iPhone 15 视口
   unit/                 纯函数的单元测试（node:test），直接 import js/ 下的模块
-  e2e/                  端到端测试；helpers.js 里有导入文件、读 IndexedDB 的公共函数
+  e2e/                  端到端测试；helpers.js 是通用工具，reader-helpers.js 是阅读页的操作（打开书、点屏幕、跳章）
 docs/
   spec-mvp.md           需求和验收标准
   DEPLOY.md             部署步骤、iPhone 添加到主屏幕步骤
@@ -116,7 +120,7 @@ docs/
 | `chapters` | `[bookId, idx]` | `text`：该章所有段落用 `
 ` 连接，不含标题行 | 在用 |
 | `progress` | `bookId` | `chapterIdx`、`offset`（屏幕上第一个可见的字在本章的序号）、`percent`（整数）、`updatedAt` | 在用 |
-| `settings` | `key`（固定 `global`） | `mode`、`fontSize`、`lineHeight`、`margin`、`theme` | 已建仓库，M3 开始写入 |
+| `settings` | `key`（固定 `global`） | `mode`（`page` / `scroll`）、`fontSize`（14–30）、`lineHeight`（1.4–2.2）、`margin`（8–40）、`theme`（`day` / `sepia` / `night`）。读出来的值不合法时该项用默认值 | 在用 |
 | `pending` | `fileKey`（`文件名|字节数`） | 等待认领的进度 | 已建仓库，M4 开始写入 |
 
 约定：
@@ -130,6 +134,9 @@ docs/
 **IndexedDB 之外的一处存储：位置日志。** `localStorage` 的 `txt-reader:position-journal`，最多一条，内容是
 `{ bookId, chapterIdx, offset, percent }`。每次保存进度先同步写它，数据库写成功后擦掉；
 App 启动时如果它还在，说明上次数据库没写成，由 `recoverJournal()` 补进数据库。原因见 ⑧。
+
+**另一处：主题副本。** `localStorage` 的 `txt-reader:theme`，是 `settings.theme` 的副本，只给 `js/theme-boot.js` 在启动第一帧之前读。
+正式的值在 IndexedDB；两者不一致时以 IndexedDB 为准（`loadSettings()` 会覆盖副本）。
 
 迁移规则：
 - `js/storage/db.js` 里维护一个按版本号排列的迁移函数数组，升级时从旧版本逐级执行
@@ -175,6 +182,11 @@ App 启动时如果它还在，说明上次数据库没写成，由 `recoverJour
   实录：2026-11-14 Henry 真机反馈，0.1.2 修。同日 Henry 真机确认：更新到 0.1.2 后 Google Drive 里的 txt 能选了。
 - **页面关闭时写 IndexedDB 会被中途掐断，最后一次阅读位置会丢。** 所以有上面的「位置日志」：先同步写 `localStorage`，下次启动补进数据库。
   不要因为「spec 说进度存 IndexedDB」就把日志删掉。实录：2026-11-14 M2，「滚动后不到半秒就刷新」的测试失败，连刚跳到的章都没存上。
+- **两种阅读模式是同一套接口**（`render / getOffset / isAtEnd / restore / scrollToEnd / relayout / activate / deactivate`），`reader.js` 不关心当前是哪种。加第三种模式照这个接口写。
+- **翻页模式里判断「某个字在不在当前页」，用字相对于内容左边缘的位置，不用屏幕坐标。** 翻页有 200 毫秒的过渡，过渡期间屏幕坐标是变的。
+- **连续调设置时要用锚点定位**（`reader.js` 的 `anchor`）。每次都拿「当前页第一个字」重新定位，连点 7 次增大字号后原来在读的字会被挤出屏幕。实录：2026-11-14 M3，P6 失败。
+- **App 启动是异步的**（先读设置、恢复位置日志，再绑按钮）。启动完成后 `<html>` 上会有 `data-ready="1"`，测试用 `waitAppReady()` 等它。页面上的静态文字比它出现得早，看到文字就操作会扑空。
+- **测试里点正文收起设置面板时，要点面板上方**（`tapAbovePanel`）。面板盖住屏幕下半部分，点屏幕正中间会点在面板上。
 - **端到端测试里不要「点某个元素」来模拟点正文。** Playwright 点元素前会先把它滚到可见位置，等于替用户滚了屏，位置相关的断言全错。
   用 `page.mouse.click` 点屏幕固定坐标（`m2-reader.spec.js` 的 `tapText`）。
 - **界面切换后要等内容更新完再断言。** 跳章后等新章标题出现；回书架后用会重试的 `expect(locator).toHaveText()`，不要立刻读一次文字。

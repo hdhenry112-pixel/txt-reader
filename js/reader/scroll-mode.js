@@ -6,7 +6,7 @@ import { charRect, firstVisibleOffset, locate } from './position.js';
  * @param {HTMLElement} deps.scroller 可滚动的容器
  * @param {HTMLElement} deps.content 放章节内容的元素
  * @param {(delta: number) => void} deps.onNavigate 点了上一章（-1）或下一章（+1）
- * @param {() => void} deps.onTap 点了正文区域
+ * @param {(zone: 'menu') => void} deps.onTap 点了正文区域（滚动模式下整个屏幕都算菜单区）
  * @param {() => void} deps.onMove 位置变了（滚动）
  */
 export function createScrollMode({ scroller, content, onNavigate, onTap, onMove }) {
@@ -93,7 +93,7 @@ export function createScrollMode({ scroller, content, onNavigate, onTap, onMove 
   const onClick = (event) => {
     // 点按钮不算点正文。
     if (event.target.closest('button')) return;
-    onTap();
+    onTap('menu');
   };
 
   function activate() {
@@ -108,5 +108,8 @@ export function createScrollMode({ scroller, content, onNavigate, onTap, onMove 
     paras = [];
   }
 
-  return { render, getOffset, isAtEnd, restore, scrollToEnd, activate, deactivate };
+  /** 字号等设置变了之后调用。滚动模式下浏览器会自动重排，这里不用做事；调用方随后用 restore 重新定位。 */
+  function relayout() {}
+
+  return { render, getOffset, isAtEnd, restore, scrollToEnd, relayout, activate, deactivate };
 }

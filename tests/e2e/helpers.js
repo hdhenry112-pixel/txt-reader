@@ -46,6 +46,14 @@ export async function waitForServiceWorker(page) {
   await expect(page.locator('#app-version')).not.toHaveText('…');
 }
 
+/**
+ * 等 App 启动完成（设置读好、按钮绑好、书架画出来）。
+ * 页面上的静态文字比 App 启动完成出现得早，看到文字就操作会扑空。
+ */
+export async function waitAppReady(page) {
+  await expect(page.locator('html[data-ready="1"]')).toHaveCount(1);
+}
+
 // ---------- M1 起：导入和读库 ----------
 
 const FIXTURES = join(HERE, '..', 'fixtures');
@@ -55,6 +63,7 @@ export const fixturePath = (name) => join(FIXTURES, name);
 
 /** 通过页面上的「导入」文件选择框选文件，和用户在手机上选文件走的是同一条路。 */
 export async function chooseFiles(page, files) {
+  await waitAppReady(page);
   await page.locator('#import-input').setInputFiles(files);
 }
 

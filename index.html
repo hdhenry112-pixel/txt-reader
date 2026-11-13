@@ -12,6 +12,8 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <meta name="theme-color" content="#F2F1EC">
+  <script src="js/theme-boot.js"></script>
   <link rel="stylesheet" href="css/themes.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/shelf.css">
@@ -30,7 +32,8 @@
     </header>
     <p id="import-status" class="import-status" role="status" hidden></p>
     <section id="shelf-list" class="shelf-list" aria-label="书架"></section>
-    <p id="shelf-empty" class="shelf-empty">还没有书</p>
+    <!-- 默认隐藏：书架读完之后确认没有书才显示，免得有书的人每次启动先看到一眼「还没有书」。 -->
+    <p id="shelf-empty" class="shelf-empty" hidden>还没有书</p>
     <footer class="shelf-footer">版本 <span id="app-version">…</span></footer>
   </main>
 
@@ -48,7 +51,50 @@
       <button id="reader-toc-button" type="button">目录</button>
       <span id="reader-chapter-title" class="grow"></span>
       <span id="reader-percent"></span>
+      <button id="reader-settings-button" type="button">设置</button>
     </footer>
+
+    <aside id="settings-panel" class="settings-panel" aria-label="设置" hidden>
+      <div class="setting-row">
+        <span class="setting-label">模式</span>
+        <div class="setting-choices">
+          <button type="button" data-set="mode" data-value="page">翻页</button>
+          <button type="button" data-set="mode" data-value="scroll">滚动</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">字号</span>
+        <div class="setting-stepper">
+          <button type="button" data-step="fontSize" data-dir="-1" aria-label="减小字号">−</button>
+          <span id="setting-fontSize"></span>
+          <button type="button" data-step="fontSize" data-dir="1" aria-label="增大字号">+</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">行距</span>
+        <div class="setting-stepper">
+          <button type="button" data-step="lineHeight" data-dir="-1" aria-label="减小行距">−</button>
+          <span id="setting-lineHeight"></span>
+          <button type="button" data-step="lineHeight" data-dir="1" aria-label="增大行距">+</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">页边距</span>
+        <div class="setting-stepper">
+          <button type="button" data-step="margin" data-dir="-1" aria-label="减小页边距">−</button>
+          <span id="setting-margin"></span>
+          <button type="button" data-step="margin" data-dir="1" aria-label="增大页边距">+</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">主题</span>
+        <div class="setting-choices">
+          <button type="button" data-set="theme" data-value="day">白天</button>
+          <button type="button" data-set="theme" data-value="sepia">护眼</button>
+          <button type="button" data-set="theme" data-value="night">夜间</button>
+        </div>
+      </div>
+    </aside>
 
     <aside id="toc-panel" class="toc-panel" aria-label="目录" hidden>
       <div class="toc-header">

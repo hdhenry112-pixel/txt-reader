@@ -1,67 +1,13 @@
 // M2：阅读页（滚动模式）、目录、进度保存与恢复。
 import { test, expect } from '@playwright/test';
-import { FILES, para } from '../gen-fixtures.mjs';
+import { para } from '../gen-fixtures.mjs';
+import { shot, watchPage, waitForServiceWorker } from './helpers.js';
 import {
-  shot, watchPage, waitForServiceWorker, fixturePath,
-  chooseFiles, waitImportDone, shelfTitles,
-} from './helpers.js';
+  titleOf, F1_TITLES, importBooks, presetMode, openBook, tapAt, showMenu, gotoChapter,
+  backToShelf, expectPercent, domParas, storedProgress,
+} from './reader-helpers.js';
 
-const path = (file) => fixturePath(FILES[file].name);
-const titleOf = (file) => FILES[file].name.replace(/\.txt$/, '');
-const F1_TITLES = [
-  '前言', '序章 风起', '第一章 起点', '第二章　远行', '第3章 归来', '第十回 夜谈',
-  '第一百零一节 转折', '第二卷 新的旅程', 'Chapter 8 Dawn', '楔子', '番外 多年以后',
-];
-
-// ---------- 操作 ----------
-
-async function importBooks(page, files) {
-  await chooseFiles(page, files.map(path));
-  await waitImportDone(page);
-  await expect(page.locator('.book')).toHaveCount(files.length);
-}
-
-async function openBook(page, file) {
-  await page.getByRole('button', { name: `打开《${titleOf(file)}》` }).click();
-  await expect(page.locator('#view-reader')).toBeVisible();
-  await expect(page.locator('#reader-content .chapter-title')).toBeVisible();
-}
-
-/**
- * 像手指一样点一下正文区域的固定位置（屏幕中间偏上）。
- * 不能用「点某个元素」：Playwright 点元素前会先把它滚动到可见位置，等于替用户滚了屏。
- */
-async function tapText(page) {
-  const box = await page.locator('#reader-scroll').boundingBox();
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.4);
-}
-
-async function showMenu(page) {
-  if (await page.locator('#reader-top').isHidden()) await tapText(page);
-  await expect(page.locator('#reader-top')).toBeVisible();
-}
-
-async function gotoChapter(page, idx) {
-  await showMenu(page);
-  await page.getByRole('button', { name: '目录' }).click();
-  await expect(page.locator('#toc-panel')).toBeVisible();
-  const item = page.locator('#toc-list button').nth(idx);
-  const title = await item.textContent();
-  await item.click();
-  await expect(page.locator('#toc-panel')).toBeHidden();
-  // 等新的一章真的渲染出来，再让测试继续操作。
-  await expect(page.locator('#reader-content .chapter-title')).toHaveText(title);
-}
-
-async function backToShelf(page) {
-  await showMenu(page);
-  await page.getByRole('button', { name: '‹ 书架' }).click();
-  await expect(page.locator('#view-shelf')).toBeVisible();
-}
-
-/** 书架上某本书显示的进度文字。回到书架后列表是异步刷新的，所以用会重试的断言。 */
-const expectPercent = (page, file, text) =>
-  expect(page.locator('.book', { hasText: titleOf(file) }).locator('.book-percent')).toHaveText(text);
+// 这个文件测的是滚动模式。M3 起默认是翻页模式，所以每条测试开始前先切到滚动模式。
 
 /** 屏幕上第一个可见段落的全文（段落的任何一部分露在可见区域里就算）。 */
 const firstVisiblePara = (page) => page.evaluate(() => {
@@ -81,16 +27,6 @@ const scrollToBottom = (page) => page.evaluate(() => {
   el.scrollTop = el.scrollHeight;
 });
 
-const domParas = (page) => page.locator('#reader-content p').allTextContents();
-
-const storedProgress = (page, file) => page.evaluate(async (title) => {
-  const base = document.baseURI;
-  const books = await import(new URL('js/storage/books.js', base).href);
-  const progress = await import(new URL('js/storage/progress.js', base).href);
-  const book = (await books.listBooks()).find((b) => b.title === title);
-  return (await progress.getProgress(book.id)) ?? null;
-}, titleOf(file));
-
 /** 等滚动停下后的自动保存完成（App 里是停 500 毫秒后保存）。 */
 const waitAutoSave = (page) => page.waitForTimeout(900);
 
@@ -101,6 +37,7 @@ test.beforeEach(async ({ page }) => {
   log = watchPage(page);
   await page.goto('./');
   await expect(page.getByText('还没有书')).toBeVisible();
+  await presetMode(page, 'scroll');
 });
 test.afterEach(() => {
   expect(log.errors).toEqual([]);
@@ -128,7 +65,7 @@ test('点书进入阅读：只渲染当前章；点正文显示菜单；目录 1
   await expect(page.locator('#reader-percent')).toHaveText('0%');
   await shot(page, 'M2', '02-菜单');
   // 再点一次正文，菜单收起。
-  await tapText(page);
+  await tapAt(page);
   await expect(page.locator('#reader-top')).toBeHidden();
 
   // 目录。
