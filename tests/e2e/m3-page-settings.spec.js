@@ -370,6 +370,76 @@ test('主题：白天、护眼、夜间的颜色正确，书架也跟着变，�
   expect(await themeColors(page)).toEqual({ theme: 'night', bg: 'rgb(26, 26, 26)', text: 'rgb(140, 140, 140)' });
 });
 
+test('改完设置立刻刷新页面（来不及写数据库）：设置不丢', async ({ page }) => {
+  await importBooks(page, ['F1']);
+  await openBook(page, 'F1');
+  await openSettings(page);
+  await page.getByRole('button', { name: '夜间' }).click();
+  await page.getByRole('button', { name: '增大字号' }).click();
+  // 不等任何东西，马上刷新。
+  await page.reload();
+  await waitAppReady(page);
+  expect(await themeColors(page)).toMatchObject({ theme: 'night', bg: 'rgb(26, 26, 26)' });
+  const saved = await page.evaluate(async () => {
+    const db = await import(new URL('js/storage/db.js', document.baseURI).href);
+    const d = await db.getDb();
+    const record = await db.done(d.transaction('settings').objectStore('settings').get('global'));
+    return { record, journal: localStorage.getItem('txt-reader:settings-journal') };
+  });
+  // 启动时已经把日志补进了数据库，并擦掉了日志。
+  expect(saved.record).toMatchObject({ theme: 'night', fontSize: 20 });
+  expect(saved.journal).toBeNull();
+  await openBook(page, 'F1');
+  expect(await fontSizeOf(page)).toBe(20);
+});
+
+// 上面那条靠时机，数据库有时来得及写完，抓不住「没写日志」这种错。下面两条不靠时机。
+
+test('设置日志（写）：调用改设置的那一刻，还没等数据库写完，localStorage 里已经有新的设置', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const settings = await import(new URL('js/settings.js', document.baseURI).href);
+    const pending = settings.updateSetting('theme', 'sepia'); // 故意不等它完成
+    const journalRightAway = JSON.parse(localStorage.getItem('txt-reader:settings-journal'));
+    await pending;
+    return { journalRightAway, journalAfterCommit: localStorage.getItem('txt-reader:settings-journal') };
+  });
+  expect(result.journalRightAway).toMatchObject({ theme: 'sepia', fontSize: 19, mode: 'page' });
+  // 数据库写成功后日志被擦掉。
+  expect(result.journalAfterCommit).toBeNull();
+});
+
+test('设置日志（读）：数据库里没有、只有日志时，启动后按日志套用设置，补进数据库并擦掉日志', async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem('txt-reader:settings-journal', JSON.stringify({
+      mode: 'scroll', fontSize: 24, lineHeight: 2, margin: 28, theme: 'night',
+    }));
+  });
+  await page.reload();
+  await waitAppReady(page);
+  expect(await themeColors(page)).toMatchObject({ theme: 'night', bg: 'rgb(26, 26, 26)' });
+  const saved = await page.evaluate(async () => {
+    const db = await import(new URL('js/storage/db.js', document.baseURI).href);
+    const d = await db.getDb();
+    const record = await db.done(d.transaction('settings').objectStore('settings').get('global'));
+    return { record, journal: localStorage.getItem('txt-reader:settings-journal') };
+  });
+  expect(saved.record).toEqual({ key: 'global', mode: 'scroll', fontSize: 24, lineHeight: 2, margin: 28, theme: 'night' });
+  expect(saved.journal).toBeNull();
+
+  // 日志里有不合法的值：那一项不采用，其余照常。
+  await page.evaluate(() => {
+    localStorage.setItem('txt-reader:settings-journal', JSON.stringify({ theme: 'blue', fontSize: 16 }));
+  });
+  await page.reload();
+  await waitAppReady(page);
+  expect((await themeColors(page)).theme).toBe('night');
+  const again = await page.evaluate(async () => {
+    const settings = await import(new URL('js/settings.js', document.baseURI).href);
+    return settings.getSettings();
+  });
+  expect(again).toEqual({ mode: 'scroll', fontSize: 16, lineHeight: 2, margin: 28, theme: 'night' });
+});
+
 test('断网后：翻页模式能读、能翻页、能改设置，没有资源加载失败', async ({ page, context }) => {
   await importBooks(page, ['F1']);
   await waitForServiceWorker(page);

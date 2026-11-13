@@ -3,7 +3,7 @@
 // 版本号规则（详见 CLAUDE.md）：
 //   1. 下面这一行是版本号的唯一来源。每次发布都必须改它。
 //   2. 新增、删除、改名任何 App 文件时，同步修改 ASSETS 清单。
-const VERSION = '0.3.1';
+const VERSION = '0.3.2';
 
 const CACHE_PREFIX = 'txt-reader-v';
 const CACHE = CACHE_PREFIX + VERSION;

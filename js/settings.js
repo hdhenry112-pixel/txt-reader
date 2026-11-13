@@ -23,6 +23,33 @@ const CHOICES = Object.freeze({
 
 const THEME_MIRROR_KEY = 'txt-reader:theme';
 
+// 设置日志：和阅读位置的日志是同一个道理（见 js/storage/progress.js）。
+// 改完设置立刻关掉 App 时，写 IndexedDB 的操作会被中途掐断，这次改动就丢了。
+// 所以每次改设置先把整份设置同步写进 localStorage，数据库写成功后擦掉；
+// 启动时如果它还在，说明上次数据库没写成，以它为准并补进数据库。
+const JOURNAL_KEY = 'txt-reader:settings-journal';
+
+function readJournal() {
+  try {
+    return JSON.parse(localStorage.getItem(JOURNAL_KEY));
+  } catch {
+    return null;
+  }
+}
+
+async function persist() {
+  const snapshot = JSON.stringify(current);
+  try { localStorage.setItem(JOURNAL_KEY, snapshot); } catch { /* 放弃日志，数据库那一路照常 */ }
+  const db = await getDb();
+  const tx = db.transaction('settings', 'readwrite');
+  tx.objectStore('settings').put({ key: 'global', ...JSON.parse(snapshot) });
+  await committed(tx);
+  // 数据库写成功了。日志如果还是这一份就擦掉；已经被更新的改动覆盖了就留着。
+  try {
+    if (localStorage.getItem(JOURNAL_KEY) === snapshot) localStorage.removeItem(JOURNAL_KEY);
+  } catch { /* 同上 */ }
+}
+
 let current = { ...DEFAULTS };
 
 /** 把一个值修正成合法值：数值夹到范围内并对齐步长；枚举值不合法时返回 null。 */
@@ -55,12 +82,21 @@ function applyTheme() {
 export async function loadSettings() {
   const db = await getDb();
   const saved = (await done(db.transaction('settings').objectStore('settings').get('global'))) ?? {};
+  const journal = readJournal();
+  // 每一项依次取：日志里的值（它比数据库新）→ 数据库里的值 → 默认值。前一个不合法才用后一个。
+  const sources = [journal && typeof journal === 'object' ? journal : {}, saved];
   current = { ...DEFAULTS };
   for (const key of Object.keys(DEFAULTS)) {
-    const value = sanitize(key, saved[key]);
-    if (value !== null) current[key] = value;
+    for (const source of sources) {
+      const value = sanitize(key, source[key]);
+      if (value !== null) {
+        current[key] = value;
+        break;
+      }
+    }
   }
   applyTheme();
+  if (journal) await persist();
   return getSettings();
 }
 
@@ -73,10 +109,7 @@ export async function updateSetting(key, value) {
   if (clean === null || clean === current[key]) return false;
   current = { ...current, [key]: clean };
   if (key === 'theme') applyTheme();
-  const db = await getDb();
-  const tx = db.transaction('settings', 'readwrite');
-  tx.objectStore('settings').put({ key: 'global', ...current });
-  await committed(tx);
+  await persist();
   return true;
 }
 
