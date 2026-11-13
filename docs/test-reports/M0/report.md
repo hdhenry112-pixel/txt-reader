@@ -84,3 +84,12 @@ Running 4 tests using 1 worker
   ok 4 [webkit-iphone] › e2e\m0-shell.spec.js:56:1 › 发布新版本后出现提示，点击后切到新版本 (2.3s)
   4 passed (5.2s)
 ```
+
+## 补充：线上地址检查（2026-11-13，推送并开启 Pages 之后）
+
+地址：`https://hdhenry112-pixel.github.io/txt-reader/`
+
+- `sw.js` 预缓存清单里的 12 个文件逐个请求，全部返回 200；线上的 `sw.js` 与仓库里的逐字节一致
+- 用 WebKit（iPhone 15 视口）真实打开线上地址：显示空书架、版本 0.1.0；断网后重新加载仍能打开；console 无报错、无加载失败、无本站以外的请求。截图 `05-线上地址-断网后重新加载.png`
+- 过程记录：Pages 刚开启时第一轮检查有 5 个文件返回 404，约半分钟后重查全部 200，是发布尚未完成，不是文件缺失
+- 仍未验证：真机表现，等 Henry 按 `docs/device-checklist.md` 确认
