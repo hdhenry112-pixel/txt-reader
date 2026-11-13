@@ -157,7 +157,7 @@ docs/
   打日志后才看到事件送达顺序。详见 `docs/test-reports/M0/report.md`。
 - **文件选择框不能写 `accept`。** 写了 `accept=".txt,text/plain"` 以后，iOS 文件选择界面里 Google Drive 位置显示 Content Unavailable。
   现在不限制类型，选完后在 `js/importer/importer.js` 里按扩展名检查。不要为了「更规范」把 accept 加回来。
-  实录：2026-11-14 Henry 真机反馈，0.1.2 修。去掉后是否解决，以 Henry 的真机确认为准（见 `docs/device-checklist.md`）。
+  实录：2026-11-14 Henry 真机反馈，0.1.2 修。同日 Henry 真机确认：更新到 0.1.2 后 Google Drive 里的 txt 能选了。
 - **单元测试和端到端测试第一次就全绿时，要做反向验证。**
   做法：故意把被测代码改坏一处（比如 `>=` 改成 `>`、从 `sw.js` 清单里删一个文件），确认对应的测试变红，再还原。
   实录：2026-11-14 M1，38 项测试一次全过，做了 6 个改坏的版本，全部被抓到。记录在 `docs/test-reports/M1/report.md`。
