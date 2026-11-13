@@ -1,0 +1,30 @@
+/* 三个主题的颜色变量。点缀色所有主题通用。 */
+:root {
+  --accent-main: #5E8F8A;   /* 主色 */
+  --accent-sub: #738090;    /* 辅色 */
+  --accent-strong: #D97757; /* 强调色：进度条、当前章节高亮 */
+}
+
+:root[data-theme="day"] {
+  --bg: #F2F1EC;
+  --text: #3A3A38;
+  --text-dim: #7A7A76;
+  --panel: #FAFAF7;
+  --line: #DDDCD5;
+}
+
+:root[data-theme="sepia"] {
+  --bg: #F4ECD8;
+  --text: #4A4033;
+  --text-dim: #8A7C66;
+  --panel: #FAF4E4;
+  --line: #E0D5BC;
+}
+
+:root[data-theme="night"] {
+  --bg: #1A1A1A;
+  --text: #8C8C8C;
+  --text-dim: #5E5E5E;
+  --panel: #242424;
+  --line: #333333;
+}

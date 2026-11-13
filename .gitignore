@@ -1,0 +1,16 @@
+# 测试依赖和产物
+node_modules/
+tests/test-results/
+tests/playwright-report/
+
+# 生成的测试数据：每次由 tests/gen-fixtures.mjs 现生成，不进仓库
+tests/fixtures/
+
+# 真实的书永远不进仓库（仓库是 public）
+*.txt
+
+# 系统和编辑器
+.DS_Store
+Thumbs.db
+.vscode/
+.claude/

@@ -1,0 +1,23 @@
+/* 书架页 */
+.shelf-list {
+  padding: 0 20px;
+}
+
+.shelf-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 16px;
+}
+
+.shelf-empty[hidden] { display: none; }
+
+.shelf-footer {
+  padding: 12px 20px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+}
