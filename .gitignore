@@ -14,3 +14,4 @@ tests/fixtures/
 Thumbs.db
 .vscode/
 .claude/
+*.orig

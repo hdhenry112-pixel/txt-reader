@@ -351,3 +351,5 @@ P2 和 P3 用不同章是为了去相关：各章字数互不相同，目录序�
 |---|---|---|---|
 | C1 | 2026-11-13 | 版本号的唯一来源从单独的 `version.js` 改为 `sw.js` 第一行的 `VERSION`；页面通过向 Service Worker 发消息拿版本号。删除 `version.js` | 浏览器靠比较 `sw.js` 的内容来发现新版本。如果版本号放在 `sw.js` 通过 `importScripts` 引入的另一个文件里，iOS Safari 是否会检查那个文件的变化我没有把握；放在 `sw.js` 本身则一定会被检查到 |
 | C2 | 2026-11-14 | 文件选择框去掉 `accept=".txt,text/plain"`；改为选完之后按扩展名检查，非 `.txt` 的列为失败 | Henry 真机反馈：从 App 点「导入」进入 Google Drive 位置显示 Content Unavailable。这是 ⑦ 第 6 条预先标过的风险，按当时写好的备用方案处理。副作用：点「导入」后 iOS 可能先弹出「照片图库 / 拍照 / 选取文件」菜单，多点一下 |
+| C3 | 2026-11-14 | 进度除了存 IndexedDB 的 `progress` 仓库，另在 `localStorage` 里保留最多一条「位置日志」（`txt-reader:position-journal`），启动时补进数据库 | M2 测试发现：页面关闭时 IndexedDB 的写入会被中途掐断，最后一次位置丢失。`localStorage` 的写入是同步的，不会丢。②第 6 步「划掉 App 再打开回到原位置」依赖这一点 |
+| C4 | 2026-11-14 | 书架上的进度文字从「0%」改为「已读 0%」 | Henry 真机反馈：刚导入完看到「0%」，以为是导入进度卡住了 |

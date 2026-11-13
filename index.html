@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="css/themes.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/shelf.css">
+  <link rel="stylesheet" href="css/reader.css">
 </head>
 <body>
   <main id="view-shelf" class="view">
@@ -31,6 +32,31 @@
     <section id="shelf-list" class="shelf-list" aria-label="书架"></section>
     <p id="shelf-empty" class="shelf-empty">还没有书</p>
     <footer class="shelf-footer">版本 <span id="app-version">…</span></footer>
+  </main>
+
+  <main id="view-reader" class="view reader" hidden>
+    <header id="reader-top" class="reader-bar reader-top" hidden>
+      <button id="reader-back" type="button">‹ 书架</button>
+      <span id="reader-book-title" class="grow"></span>
+    </header>
+
+    <div id="reader-scroll" class="reader-scroll">
+      <article id="reader-content" class="reader-content"></article>
+    </div>
+
+    <footer id="reader-bottom" class="reader-bar reader-bottom" hidden>
+      <button id="reader-toc-button" type="button">目录</button>
+      <span id="reader-chapter-title" class="grow"></span>
+      <span id="reader-percent"></span>
+    </footer>
+
+    <aside id="toc-panel" class="toc-panel" aria-label="目录" hidden>
+      <div class="toc-header">
+        <h2>目录</h2>
+        <button id="toc-close" type="button">关闭</button>
+      </div>
+      <ol id="toc-list" class="toc-list"></ol>
+    </aside>
   </main>
 
   <div id="toast-host" class="toast-host" aria-live="polite"></div>

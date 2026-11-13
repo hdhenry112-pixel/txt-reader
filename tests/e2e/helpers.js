@@ -1,6 +1,6 @@
 // 端到端测试的公共工具。
 import { expect } from '@playwright/test';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -10,7 +10,11 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 export async function shot(page, milestone, name) {
   const dir = join(HERE, '..', '..', 'docs', 'test-reports', milestone);
   mkdirSync(dir, { recursive: true });
-  await page.screenshot({ path: join(dir, `${name}.png`) });
+  const file = join(dir, `${name}.png`);
+  // 已有的截图不覆盖：旧里程碑的报告是历史记录，每次全量回归都重拍会让 git 里全是无意义的图片改动。
+  // 要重拍某个里程碑的截图，先删掉那个目录里的 png 再跑。
+  if (existsSync(file)) return;
+  await page.screenshot({ path: file });
 }
 
 /**

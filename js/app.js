@@ -1,5 +1,7 @@
 // 入口：启动页面、注册 Service Worker、提示新版本。
-import { setupShelf } from './shelf.js';
+import { setupShelf, renderShelf } from './shelf.js';
+import { setupReader, openReader } from './reader/reader.js';
+import { recoverJournal } from './storage/progress.js';
 import { showActionToast } from './ui/toast.js';
 
 const UPDATE_TOAST_ID = 'update-toast';
@@ -73,5 +75,8 @@ function requestPersistentStorage() {
 
 blockZoom();
 requestPersistentStorage();
-setupShelf();
+setupReader({ onClose: renderShelf });
+// 先把上次没来得及写进数据库的阅读位置补上，再显示书架，这样书架上的进度是最新的。
+await recoverJournal().catch(() => {});
+setupShelf({ onOpen: openReader });
 setupServiceWorker();

@@ -1,0 +1,171 @@
+/* 阅读页 */
+.reader {
+  /* 排版参数。M3 的设置面板会改这几个变量。 */
+  --reader-font-size: 19px;
+  --reader-line-height: 1.8;
+  --reader-margin: 20px;
+
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.reader-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.reader-content {
+  padding: 16px var(--reader-margin) 32px;
+  font-size: var(--reader-font-size);
+  line-height: var(--reader-line-height);
+  text-align: justify;
+  overflow-wrap: anywhere;
+}
+
+.reader-content p {
+  margin: 0 0 0.6em;
+  text-indent: 2em; /* 首行缩进两字 */
+}
+
+.chapter-title {
+  margin: 0.4em 0 1em;
+  font-size: 1.25em;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.chapter-nav {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin: 8px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--accent-main);
+  font-size: 16px;
+}
+
+.book-end {
+  margin: 24px 0 8px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* 菜单的顶部栏和底部栏，浮在正文上面 */
+.reader-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: calc(env(safe-area-inset-left) + 16px);
+  padding-right: calc(env(safe-area-inset-right) + 16px);
+  background: var(--panel);
+  font-size: 15px;
+}
+
+.reader-bar[hidden] { display: none; }
+
+.reader-top {
+  top: 0;
+  padding-top: calc(env(safe-area-inset-top) + 8px);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.reader-bottom {
+  bottom: 0;
+  padding-top: 8px;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+  border-top: 1px solid var(--line);
+}
+
+.reader-bar button {
+  flex: none;
+  min-height: 44px;
+  padding: 0 8px;
+  color: var(--accent-main);
+  font-size: 16px;
+}
+
+.reader-bar .grow {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#reader-book-title { font-weight: 600; }
+#reader-chapter-title { color: var(--text-dim); }
+#reader-percent { flex: none; color: var(--accent-strong); }
+
+/* 目录面板 */
+.toc-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--bg);
+}
+
+.toc-panel[hidden] { display: none; }
+
+.toc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.toc-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.toc-header button {
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--accent-main);
+  font-size: 16px;
+}
+
+.toc-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  list-style: none;
+}
+
+.toc-list button {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-size: 16px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.toc-list button.current {
+  color: var(--accent-strong);
+  font-weight: 600;
+}

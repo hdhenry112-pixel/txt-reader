@@ -28,7 +28,7 @@ test('一次选 F1（UTF-8）和 F2（GBK）：书架出现 2 本，进度 0%，
   await expect(page.locator('.book')).toHaveCount(2);
   expect((await shelfTitles(page)).sort()).toEqual([titleOf('F1'), titleOf('F2')]);
   // P1：刚导入没打开过，进度 0%。
-  await expect(page.locator('.book-percent')).toHaveText(['0%', '0%']);
+  await expect(page.locator('.book-percent')).toHaveText(['已读 0%', '已读 0%']);
   await expect(page.getByText('还没有书')).toBeHidden();
   await expect(page.getByText('编码可能有误')).toHaveCount(0);
   await shot(page, 'M1', '01-导入两本后的书架');

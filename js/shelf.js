@@ -7,6 +7,8 @@ import { showToast } from './ui/toast.js';
 
 const $ = (id) => document.getElementById(id);
 
+let onOpen = () => {};
+
 /** 排序：读过的按最近阅读时间倒序在前；没读过的按导入时间倒序在后。 */
 export function sortBooks(books) {
   return [...books].sort((a, b) => {
@@ -22,19 +24,24 @@ function bookRow(book, percent) {
   row.className = 'book';
   row.dataset.bookId = book.id;
 
-  const info = document.createElement('div');
+  // 书名和进度这一块整体是一个按钮，点了打开这本书。
+  const info = document.createElement('button');
+  info.type = 'button';
   info.className = 'book-info';
+  info.setAttribute('aria-label', `打开《${book.title}》`);
+  info.addEventListener('click', () => onOpen(book.id));
 
-  const title = document.createElement('h2');
+  const title = document.createElement('span');
   title.className = 'book-title';
   title.textContent = book.title;
   info.append(title);
 
-  const meta = document.createElement('div');
+  const meta = document.createElement('span');
   meta.className = 'book-meta';
   const pct = document.createElement('span');
   pct.className = 'book-percent';
-  pct.textContent = `${percent}%`;
+  // 写明「已读」：只写一个百分比，刚导入完时会被当成导入进度。
+  pct.textContent = `已读 ${percent}%`;
   meta.append(pct);
   if (book.encodingSuspect) {
     const warn = document.createElement('span');
@@ -44,9 +51,9 @@ function bookRow(book, percent) {
   }
   info.append(meta);
 
-  const bar = document.createElement('div');
+  const bar = document.createElement('span');
   bar.className = 'book-bar';
-  const fill = document.createElement('div');
+  const fill = document.createElement('span');
   fill.className = 'book-bar-fill';
   fill.style.width = `${percent}%`;
   bar.append(fill);
@@ -118,7 +125,9 @@ async function onFilesChosen(input) {
   }
 }
 
-export function setupShelf() {
+/** @param {{ onOpen: (bookId: string) => void }} handlers onOpen 在用户点了一本书时调用 */
+export function setupShelf(handlers) {
+  onOpen = handlers.onOpen;
   const input = $('import-input');
   input.addEventListener('change', () => onFilesChosen(input));
   return renderShelf();

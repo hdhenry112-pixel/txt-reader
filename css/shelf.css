@@ -96,3 +96,13 @@
   color: var(--accent-sub);
   font-size: 14px;
 }
+
+/* M2 起：书名和进度这一块是按钮，里面的元素都是 span，要按块显示 */
+button.book-info {
+  display: block;
+  text-align: left;
+}
+
+.book-title,
+.book-bar,
+.book-bar-fill { display: block; }
