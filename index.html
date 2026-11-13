@@ -22,7 +22,9 @@
       <h1>书架</h1>
       <label class="import-button">
         导入
-        <input id="import-input" class="visually-hidden" type="file" accept=".txt,text/plain" multiple>
+        <!-- 故意不写 accept：写了以后 iOS 文件选择界面里 Google Drive 位置显示 Content Unavailable。
+             文件类型改为选完之后在 importer.js 里按扩展名检查。见 spec ⑧ C2。 -->
+        <input id="import-input" class="visually-hidden" type="file" multiple>
       </label>
     </header>
     <p id="import-status" class="import-status" role="status" hidden></p>

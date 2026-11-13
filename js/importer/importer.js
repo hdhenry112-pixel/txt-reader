@@ -17,6 +17,8 @@ export async function importFiles(files, onProgress = () => {}) {
     onProgress(index, files.length, title);
     try {
       // 一本失败不影响其他本，所以每本单独 try。
+      // 文件选择框不限制类型（见 index.html 里的说明），所以在这里按扩展名检查。
+      if (!/\.txt$/i.test(file.name)) throw new ImportError('不是 txt 文件');
       if (await findBookByFile(file.name, file.size)) {
         result.skipped.push(title);
         continue;

@@ -1,6 +1,7 @@
 // M1：导入、分章、存储、书架、删除。
 // 期望值来自 spec ④ 的手算结果和 gen-fixtures.mjs 的原文。
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { FILES, para } from '../gen-fixtures.mjs';
 import {
   shot, watchPage, waitForServiceWorker, fixturePath,
@@ -141,6 +142,26 @@ test('含无法识别字节的文件：导入成功，书架上标「编码可�
   await expect(page.locator('.book')).toHaveCount(1);
   await expect(page.locator('.book').getByText('编码可能有误')).toBeVisible();
   await shot(page, 'M1', '05-编码可能有误');
+});
+
+test('文件选择框不限制类型；选了非 txt 文件时不导入，并说明原因', async ({ page }) => {
+  // 不限制类型是为了让 iOS 的 Google Drive 位置能显示文件（spec ⑧ C2）。
+  expect(await page.locator('#import-input').getAttribute('accept')).toBeNull();
+  // Playwright 不允许把文件路径和内存里的文件混着选，所以 F2 也读成内存文件。
+  await chooseFiles(page, [
+    { name: '照片.jpg', mimeType: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0]) },
+    // 名字以 txt 结尾但没有点号，不算 txt 文件。
+    { name: '笔记txt', mimeType: 'application/octet-stream', buffer: Buffer.from('abc') },
+    { name: FILES.F2.name, mimeType: 'text/plain', buffer: readFileSync(path('F2')) },
+  ]);
+  await waitImportDone(page);
+  const dialog = page.getByRole('dialog', { name: '导入结果' });
+  await expect(dialog).toContainText('成功 1 本');
+  await expect(dialog).toContainText('照片.jpg：不是 txt 文件');
+  await expect(dialog).toContainText('失败 2 本');
+  await expect(dialog).toContainText('笔记txt：不是 txt 文件');
+  await dialog.getByRole('button', { name: '知道了' }).click();
+  expect(await shelfTitles(page)).toEqual([titleOf('F2')]);
 });
 
 test('删除：取消则不删；确认后书、目录、章节都删除，刷新后仍然没有', async ({ page }) => {
