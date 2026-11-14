@@ -6,3 +6,5 @@
 - 需求和验收标准：[docs/spec-mvp.md](docs/spec-mvp.md)
 - 部署和安装到 iPhone：[docs/DEPLOY.md](docs/DEPLOY.md)
 - 项目约定（结构、数据模型、版本号规则）：[CLAUDE.md](CLAUDE.md)
+- 交接文档（现状和下一步）：[docs/HANDOFF.md](docs/HANDOFF.md)
+- M5 的需求（待确认）：[docs/spec-m5.md](docs/spec-m5.md)

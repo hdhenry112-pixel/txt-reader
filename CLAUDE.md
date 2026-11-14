@@ -8,9 +8,9 @@
 
 **需求和验收标准**：[docs/spec-mvp.md](docs/spec-mvp.md)（2026-11-13 确认）。改需求要在 spec 末尾的「变更记录」里登记，不许悄悄改。
 
-**当前进度**：M0–M3 完成（导入、分章、书架、滚动和翻页两种阅读模式、目录、进度保存与恢复、设置面板、三个主题、屏幕常亮），线上版本 0.3.2。
-M4 也已完成（大文件、备份与恢复、换编码重新导入、数据库迁移到版本 2），线上版本 0.4.1。
-下一步 M5。Henry 2026-11-14 定的：M5 做 PDF 阅读和九宫格手势密码。**这两项都还没进 spec，细节没问清，未确认前不要动手。**
+**当前进度**：M0–M4 完成，线上版本 0.4.1。M4 已经 Henry 真机验证通过（2026-11-14）。
+下一步 M5：九宫格手势密码（M5a）和文字型 PDF 导入（M5b），需求在 [docs/spec-m5.md](docs/spec-m5.md)，**状态是待确认，Henry 确认之前不要动手**。
+接手这个项目先读 [docs/HANDOFF.md](docs/HANDOFF.md)。
 
 ---
 
@@ -97,7 +97,9 @@ tests/
   unit/                 纯函数的单元测试（node:test），直接 import js/ 下的模块
   e2e/                  端到端测试；helpers.js 是通用工具，reader-helpers.js 是阅读页的操作（打开书、点屏幕、跳章）
 docs/
-  spec-mvp.md           需求和验收标准
+  HANDOFF.md            交接文档：现状、下一步、环境、协作要点
+  spec-mvp.md           M0–M4 的需求和验收标准
+  spec-m5.md            M5（手势密码、PDF）的需求和验收标准
   DEPLOY.md             部署步骤、iPhone 添加到主屏幕步骤
   device-checklist.md   真机检查清单
   test-reports/         每个里程碑的测试输出和截图
