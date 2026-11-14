@@ -122,8 +122,7 @@ docs/
 |---|---|---|---|
 | `books` | `id`（`crypto.randomUUID()`） | `title`（文件名去掉 .txt）、`fileName`、`fileSize`（字节）、`encoding`（`utf-8` / `gbk` / `big5` / `utf-16le` / `utf-16be`）、`encodingSuspect`（布尔）、`totalLen`（全书字数）、`chapterCount`、`addedAt`（毫秒时间戳）、`lastReadAt`（没读过为 `null`） | 在用 |
 | `tocs` | `bookId` | `entries`：`[{ title, len }]`，`len` 是该章字数 | 在用 |
-| `chapters` | `[bookId, idx]` | `text`：该章所有段落用 `
-` 连接，不含标题行 | 在用 |
+| `chapterGroups` | `[bookId, group]` | `texts`：这一组里每章的文本组成的数组（最多 50 个）；每章的文本是该章所有段落用换行符连接，不含标题行 | 在用 |
 | `progress` | `bookId` | `chapterIdx`、`offset`（屏幕上第一个可见的字在本章的序号）、`percent`（整数）、`updatedAt` | 在用 |
 | `settings` | `key`（固定 `global`） | `mode`（`page` / `scroll`）、`fontSize`（14–30）、`lineHeight`（1.4–2.2）、`margin`（8–40）、`theme`（`day` / `sepia` / `night`）。读出来的值不合法时该项用默认值 | 在用 |
 | `pending` | `fileKey`（`文件名|字节数`） | `title`、`progress`（可为 `null`）、`lastReadAt`。从不含正文的备份恢复时写入；导入对上的 txt 时取出并删除 | 在用 |
@@ -206,9 +205,7 @@ App 启动时如果它还在，说明上次数据库没写成，由 `recoverJour
   所以正文每 50 章存一条。以后往库里存「很多条小记录」的设计都要先想到这一点。实录：2026-11-14 M4，F4 导入 31 秒 → 0.9 秒。
 - **调起文件选择界面和系统分享面板，必须紧跟在用户的点击之后。** 所以导出备份分「生成备份」「保存到文件」两次点击（生成要读数据库，是异步的）；
   换编码时选完编码立刻 `input.click()`。真机上是否都能调起，见真机清单 M4。
-- **用脚本批量改文件前先把 `
-` 统一成 `
-`。** 这个仓库在 Windows 上签出后工作区是 CRLF，多行的查找文本对不上。实录：M4 一次批量修改因此整体失败（好在是报错而不是静默跳过）。
+- **用脚本批量改文件前先把 CRLF 换行统一成 LF。** 这个仓库在 Windows 上签出后工作区是 CRLF，多行的查找文本对不上。实录：M4 一次批量修改因此整体失败（好在是报错而不是静默跳过）。
 - **端到端测试里不要「点某个元素」来模拟点正文。** Playwright 点元素前会先把它滚到可见位置，等于替用户滚了屏，位置相关的断言全错。
   用 `page.mouse.click` 点屏幕固定坐标（`m2-reader.spec.js` 的 `tapText`）。
 - **界面切换后要等内容更新完再断言。** 跳章后等新章标题出现；回书架后用会重试的 `expect(locator).toHaveText()`，不要立刻读一次文字。
