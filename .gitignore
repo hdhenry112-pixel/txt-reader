@@ -8,6 +8,7 @@ tests/fixtures/
 
 # 真实的书永远不进仓库（仓库是 public）
 *.txt
+*.pdf
 
 # 系统和编辑器
 .DS_Store
