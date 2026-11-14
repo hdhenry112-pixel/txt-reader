@@ -533,3 +533,68 @@ test('断网后：能画图案解锁、能阅读；没有资源加载失败，�
   await context.setOffline(false);
   expect(titleOf('F2')).toBeTruthy();
 });
+
+// ---------- C3：切到后台时遮挡画面（K18–K21）----------
+
+/**
+ * 切到后台，并在同一段同步代码里（visibilitychange 事件处理完的那一刻，浏览器还没机会重绘）
+ * 检查书架、阅读页、锁屏页、设置面板是否都不可见。返回每个元素「不可见」与否。
+ */
+const hideAndInspect = (page) => page.evaluate(() => {
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+  Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+  document.dispatchEvent(new Event('visibilitychange'));
+  const hidden = (id) => {
+    const el = document.getElementById(id);
+    return el.hidden || getComputedStyle(el).visibility === 'hidden';
+  };
+  return {
+    covered: document.documentElement.dataset.covered ?? null,
+    shelf: hidden('view-shelf'),
+    reader: hidden('view-reader'),
+    lock: hidden('lock-screen'),
+    toast: hidden('toast-host'),
+  };
+});
+
+const ALL_HIDDEN = { covered: '1', shelf: true, reader: true, lock: true, toast: true };
+
+test('K18：开启后读书时切到后台 → 切走的那一刻页面只剩背景色', async ({ page }) => {
+  await readingOnPage3(page);
+  expect(await hideAndInspect(page)).toEqual(ALL_HIDDEN);
+  await shot(page, 'M5', '11-切到后台遮挡');
+});
+
+test('K19：切到后台 4 分 59 秒回来 → 遮挡消失、不锁、仍在第 3 页', async ({ page }) => {
+  await readingOnPage3(page);
+  expect(await hideAndInspect(page)).toEqual(ALL_HIDDEN);
+  await page.clock.fastForward(299_000);
+  await setVisibility(page, 'visible');
+  expect(await page.evaluate(() => document.documentElement.dataset.covered ?? null)).toBeNull();
+  await expect(page.locator('#view-reader')).toBeVisible();
+  await expectStaysHidden(lockScreen(page), 500);
+  await expect(content(page)).toHaveAttribute('data-page', '2');
+});
+
+test('K20：切到后台 5 分 00 秒回来 → 遮挡消失、出现锁屏页；画对后仍在第 3 页', async ({ page }) => {
+  await readingOnPage3(page);
+  expect(await hideAndInspect(page)).toEqual(ALL_HIDDEN);
+  await page.clock.fastForward(300_000);
+  await setVisibility(page, 'visible');
+  expect(await page.evaluate(() => document.documentElement.dataset.covered ?? null)).toBeNull();
+  await expect(lockScreen(page)).toBeVisible();
+  await expect(page.locator('#view-reader')).toBeHidden();
+  await unlock(page);
+  await expect(content(page)).toHaveAttribute('data-page', '2');
+});
+
+test('K21：没开启密码，读书时切到后台 → 不遮挡', async ({ page }) => {
+  await importBooks(page, ['F1']);
+  await presetMode(page, 'page');
+  await openBook(page, 'F1');
+  const state = await hideAndInspect(page);
+  expect(state.covered).toBeNull();
+  expect(state.reader).toBe(false);
+  await setVisibility(page, 'visible');
+  await expect(page.locator('#view-reader')).toBeVisible();
+});

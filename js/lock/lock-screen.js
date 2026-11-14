@@ -108,14 +108,21 @@ async function onForget() {
   location.reload();
 }
 
+// 切到后台时的遮挡（spec-m5 C3）：开启了密码时，一离开前台就给 <html> 加 data-covered，
+// CSS 把整个页面盖成纯背景色，iOS 多任务界面的缩略图里就看不到书架和正文。
+// 回来时：不到 5 分钟直接拿掉；≥ 5 分钟先上锁再拿掉（同一个任务里完成，不会露出一帧正文）。
+// 没开启密码时不遮挡。
 function onVisibilityChange() {
+  const root = document.documentElement;
   if (document.visibilityState === 'hidden') {
     hiddenAt = Date.now();
+    if (isLockEnabled()) root.dataset.covered = '1';
     return;
   }
   const away = hiddenAt === null ? 0 : Date.now() - hiddenAt;
   hiddenAt = null;
   if (away >= RELOCK_MS && !isLocked()) lockNow();
+  delete root.dataset.covered;
 }
 
 /**

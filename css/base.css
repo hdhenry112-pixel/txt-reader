@@ -302,3 +302,6 @@ button.toast { text-align: center; }
 html[data-locked] body > *:not(#lock-screen):not(.over-lock) { visibility: hidden; }
 
 .dialog-backdrop.over-lock { z-index: 400; }
+
+/* 切到后台时的遮挡：整个页面只剩背景色（html 的背景），什么内容都不显示。见 js/lock/lock-screen.js */
+html[data-covered] body > * { visibility: hidden !important; }
