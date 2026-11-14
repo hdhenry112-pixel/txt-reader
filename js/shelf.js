@@ -76,7 +76,7 @@ function renderPending(pending) {
   const notice = $('pending-notice');
   notice.hidden = pending.length === 0;
   notice.textContent = pending.length
-    ? `有 ${pending.length} 本书等待重新导入：${pending.map((p) => `《${p.title}》`).join('')}。导入对应的 txt 后会自动接回阅读进度。`
+    ? `有 ${pending.length} 本书等待重新导入：${pending.map((p) => `《${p.title}》`).join('')}。导入对应的文件后会自动接回阅读进度。`
     : '';
 }
 
@@ -111,8 +111,9 @@ async function onFilesChosen(input) {
 
   const status = $('import-status');
   status.hidden = false;
-  const result = await importFiles(files, (index, total, title) => {
-    status.textContent = `正在导入 ${index}/${total}：${title}`;
+  const result = await importFiles(files, (index, total, title, pdfPage) => {
+    status.textContent = `正在导入 ${index}/${total}：${title}`
+      + (pdfPage ? `（第 ${pdfPage.page} / ${pdfPage.pages} 页）` : '');
   });
   status.hidden = true;
   await renderShelf();

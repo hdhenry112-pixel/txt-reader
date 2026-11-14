@@ -63,10 +63,12 @@ async function onReimportFileChosen(input) {
 
 /** 打开某本书的操作菜单。 */
 export async function openBookActions(book) {
+  // PDF 来的书没有编码一说，不显示「换编码重新导入」。旧书没有 source 字段，按 txt 处理。
+  const isPdf = book.source === 'pdf';
   const action = await choiceDialog({
     title: `《${book.title}》`,
     choices: [
-      { label: '换编码重新导入', value: 'reimport' },
+      ...(isPdf ? [] : [{ label: '换编码重新导入', value: 'reimport' }]),
       { label: '删除', value: 'delete', kind: 'danger' },
     ],
   });

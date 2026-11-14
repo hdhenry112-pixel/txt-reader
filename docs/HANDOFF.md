@@ -1,6 +1,6 @@
 # 交接文档
 
-**写于**：2026-11-14，M4 发布并经 Henry 真机验证通过之后。**更新于** 2026-11-14：M5a 手势密码发布（0.5.1），随后加了切到后台时遮挡画面（0.5.2），又修了断网启动时版本号不显示（0.5.3）。
+**写于**：2026-11-14，M4 发布并经 Henry 真机验证通过之后。**更新于** 2026-11-14：M5a 手势密码发布（0.5.1），随后加了切到后台时遮挡画面（0.5.2），又修了断网启动时版本号不显示（0.5.3）；M5b PDF 导入发布（0.5.4）。
 **给谁看**：接手这个项目的下一个对话（可能换了模型）。Henry 也可以用它回顾现状。
 
 读的顺序：本文件 → `CLAUDE.md`（项目约定和踩过的坑，必读）→ `docs/spec-m5.md`（下一步要做的）→ 需要时再看 `docs/spec-mvp.md` 和各里程碑的测试报告。
@@ -11,11 +11,11 @@
 
 | 项 | 状态 |
 |---|---|
-| 线上版本 | **0.5.3**，`https://hdhenry112-pixel.github.io/txt-reader/` |
+| 线上版本 | **0.5.4**，`https://hdhenry112-pixel.github.io/txt-reader/` |
 | 仓库 | GitHub `hdhenry112-pixel/txt-reader`，public，分支 `main`，GitHub Pages 从 `main` 根目录发布 |
 | 本地目录 | `D:\Claude Code\4-APP\PWA-reader` |
 | 工作区 | 干净，全部已提交并推送 |
-| 测试 | 51 项单元测试 + 76 项端到端测试，全部通过（M5 新增 7 + 27） |
+| 测试 | 68 项单元测试 + 94 项端到端测试，全部通过（M5 新增 24 + 45） |
 | 数据库 | IndexedDB schema 版本 2 |
 
 **已完成的里程碑**
@@ -28,6 +28,7 @@
 | M3 | 0.3.1 / 0.3.2 | 翻页模式、设置、主题 | 没有逐项回填 |
 | M4 | 0.4.1 | 备份恢复、换编码、大文件、数据库迁移 | **Henry 2026-11-14 说「M4 验证通过」** |
 | M5a | 0.5.1 – 0.5.3 | 九宫格手势密码；0.5.2 加切到后台时遮挡画面；0.5.3 修断网启动时版本号不显示 | 等 Henry 真机验证（`docs/device-checklist.md` 的 M5a 一节） |
+| M5b | 0.5.4 | 文字型 PDF 导入（pdf.js 6.5.438） | 等 Henry 真机验证（`docs/device-checklist.md` 的 M5b 一节） |
 
 「没有逐项回填」的意思是：Henry 一直在用，后续的版本他都更新了，没有反馈问题，但 `docs/device-checklist.md` 里的「结果」列是空的。不要把它当成逐项确认过。
 
@@ -35,22 +36,21 @@
 
 | 里程碑 | 内容 | 状态 |
 |---|---|---|
-| M5b | 文字型 PDF 导入 | spec 已确认（2026-11-14），没开始 |
 | M6 | 收尾：全量回归、文档补全、最终真机清单，版本 1.0.0 | 没开始 |
 
 ## 2. 下一步怎么做
 
-1. `docs/spec-m5.md` 已于 2026-11-14 确认（第 ⑦ 节 5 条全部按建议）。M5a 已发布 0.5.1，报告在 `docs/test-reports/M5/report.md`。
+1. `docs/spec-m5.md` 已于 2026-11-14 确认（第 ⑦ 节 5 条全部按建议，之后的变更 C1–C7 在第 ⑨ 节）。M5 全部发布（0.5.1–0.5.4），报告在 `docs/test-reports/M5/report.md`。
 2. 接下来：
-   - 等 Henry 做 M5a 的真机清单（0.5.3 上做）
-   - **M5b PDF → 发布 0.5.4**（原定 0.5.2，先后被遮挡功能和一个修复占用，见 spec C3、C4）。开工第一件事：查 pdf.js 官方文档，确定版本、需要哪些文件、总大小，把实际大小告诉 Henry，再往下做。
+   - 等 Henry 做 M5a、M5b 的真机清单（0.5.4 上做）。M5b 最要紧的是真实小说 PDF 的分段、去页眉、目录；有问题照现象调 `js/importer/pdf-layout.js` 的规则，并加单元测试
+   - 然后 M6（收尾，1.0.0），开工前先和 Henry 确认范围
 3. 每次发布的固定流程（前四个里程碑都是这么走的）：
    1. 写代码；新增文件同步加进 `sw.js` 的 `ASSETS`
    2. 写测试，期望值来自 spec 的手算锚点，不来自被测代码的输出
    3. `cd tests && npm test` 全量通过
    4. 反向验证：用 `node tests/mutate.mjs apply <文件> <原文> <改成>` 改坏一处，确认测试变红，再 `restore`
    5. 截图存到 `docs/test-reports/M<n>/`，**用 Read 工具看过**
-   6. 改 `sw.js` 第一行的 `VERSION`
+   6. 改 `sw.js` 里的 `VERSION`（文件开头注释之后那一行）
    7. 更新 `CLAUDE.md`（进度、文件结构、数据模型、新踩的坑）、`docs/device-checklist.md`（新一节）、写 `docs/test-reports/M<n>/report.md`
    8. commit、push
    9. 等线上版本号变成新的，逐个请求 `ASSETS` 里的文件，再用 Playwright 对线上地址跑一遍真实操作。**读到结果之后**再把结论写进报告
@@ -134,4 +134,4 @@ node serve.mjs                    # 本地看页面：http://localhost:4173/txt-
 ## 9. 新对话的开场白（Henry 可以直接贴）
 
 > 这是 TXT 阅读器项目（iOS PWA），目录 `D:\Claude Code\4-APP\PWA-reader`。
-> 请先读 `docs/HANDOFF.md`、`CLAUDE.md`、`docs/spec-m5.md`，然后开始做 M5b（PDF 导入）。第一步先查 pdf.js 的版本、需要的文件和总大小，告诉我再往下做。
+> 请先读 `docs/HANDOFF.md`、`CLAUDE.md`，然后告诉我 M6（收尾）打算做什么，我确认后再开始。

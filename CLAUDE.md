@@ -8,8 +8,8 @@
 
 **需求和验收标准**：[docs/spec-mvp.md](docs/spec-mvp.md)（2026-11-13 确认）。改需求要在 spec 末尾的「变更记录」里登记，不许悄悄改。
 
-**当前进度**：M0–M4 完成，M4 已经 Henry 真机验证通过（2026-11-14）。M5a 手势密码完成：0.5.1 手势密码，0.5.2 加「切到后台时遮挡画面」（spec-m5 C3），0.5.3 修「断网启动时版本号不显示」（C4）。2026-11-14 发布，等 Henry 真机验证。PDF 是 0.5.4。
-下一步 M5b：文字型 PDF 导入。需求在 [docs/spec-m5.md](docs/spec-m5.md)（2026-11-14 确认）。开工第一件事是查 pdf.js 的版本、文件和总大小，告诉 Henry 再往下做。
+**当前进度**：M0–M4 完成，M4 已经 Henry 真机验证通过（2026-11-14）。M5a 手势密码完成：0.5.1 手势密码，0.5.2 加「切到后台时遮挡画面」（spec-m5 C3），0.5.3 修「断网启动时版本号不显示」（C4）。2026-11-14 发布，等 Henry 真机验证。M5b 文字型 PDF 导入完成，版本 0.5.4（2026-11-14），等 Henry 真机验证。
+需求在 [docs/spec-m5.md](docs/spec-m5.md)（2026-11-14 确认，变更 C1–C7）。下一步 M6（收尾，1.0.0），开工前先和 Henry 确认范围。
 接手这个项目先读 [docs/HANDOFF.md](docs/HANDOFF.md)。
 
 ---
@@ -35,6 +35,7 @@
 ## ② 技术约束
 
 - 原生 HTML / CSS / JS（ES modules）。不用框架、不用构建、不用 CDN，所有资源在仓库里
+- 唯一的第三方代码是 `vendor/pdfjs/`（pdf.js 6.5.438，Apache-2.0），**不许改**；换版本照 `tests/vendor-pdfjs.mjs` 开头的说明做
 - 托管：GitHub Pages，public 仓库 `txt-reader`，地址是 `/txt-reader/` 子路径 → **所有资源路径用相对路径**，不许以 `/` 开头
 - 目标环境：最新版 iOS Safari 的主屏幕 PWA 模式。不兼容其他浏览器
 - 完全离线：Service Worker 缓存 App 外壳；正文和进度存 IndexedDB；App 运行期间不发网络请求（Service Worker 检查更新除外）
@@ -85,8 +86,11 @@ js/
   chapterizer.js        分章（纯函数），含切分字数等常量
   importer/
     decode.js           编码判断与解码（纯函数）
-    parse.js            字节 → 可入库的书（纯函数，串起 decode / normalize / chapterizer）
-    importer.js         导入流程：逐本处理、重复判断、入库、认领等待中的进度；换编码重新导入
+    parse.js            字节 → 可入库的书（纯函数，串起 decode / normalize / chapterizer）；段落 → 书（txt 和 PDF 共用）
+    pdf-extract.js      用 pdf.js 抽每页的文字片段（导入 PDF 时才加载 pdf.js；逐页处理、处理完就释放）
+    pdf-layout.js       PDF 文字片段 → 段落（纯函数）：合成行、去页眉页脚、分段、修正部首字符
+    radicals.js         部首字符 → 常用汉字的对照表，由 tests/gen-radicals.mjs 从 Unicode 官方数据生成
+    importer.js         导入流程：按扩展名分 txt / PDF、逐本处理、重复判断、入库、认领等待中的进度；换编码重新导入
   storage/
     db.js               打开数据库、迁移函数数组、删除整个数据库（忘记图案用）
     books.js            books / tocs / chapterGroups 的读写；章节分组只在这个文件里可见
@@ -95,9 +99,16 @@ js/
     dialog.js           页面内的确认框和信息框；overLock 为真时盖在锁屏页上面
     toast.js            提示条
 icons/                  由 tests/gen-icons.mjs 生成
+vendor/
+  pdfjs/                pdf.js 原样拷贝：pdf.min.mjs、pdf.worker.min.mjs、cmaps/（169 个）、LICENSE
+    assets.js           离线缓存清单（sw.js 用 importScripts 读），由 tests/vendor-pdfjs.mjs 生成
+    VERSION.md          版本、来源、每个文件的 sha256，由 tests/vendor-pdfjs.mjs 生成
 tests/
   serve.mjs             本地测试服务器，挂在 /txt-reader/ 子路径，可模拟「发布了新版本」
   gen-fixtures.mjs      生成 spec ④ 的测试文件 F1–F9 到 tests/fixtures/（不进仓库）
+  gen-pdf-fixtures.mjs  用 Chromium 打印生成 PDF 测试文件 P1–P7、G11 到 tests/fixtures/（spec-m5 ④）
+  vendor-pdfjs.mjs      登记 vendor/pdfjs/：生成 assets.js 和 VERSION.md
+  gen-radicals.mjs      生成 js/importer/radicals.js（需要 Unicode 的 EquivalentUnifiedIdeograph.txt）
   gen-icons.mjs         生成图标
   mutate.mjs            反向验证工具：把源码改坏一处 / 还原（见 ⑧）
   playwright.config.js  WebKit + iPhone 15 视口
@@ -117,7 +128,8 @@ docs/
 | 目录 | AI 权限 |
 |---|---|
 | App 代码、`tests/`、`docs/` | 可写 |
-| `tests/fixtures/` | 只能由 `gen-fixtures.mjs` 生成，不手改 |
+| `tests/fixtures/` | 只能由 `gen-fixtures.mjs`、`gen-pdf-fixtures.mjs` 生成，不手改 |
+| `vendor/pdfjs/` | 只读（第三方代码）。`assets.js`、`VERSION.md` 只能由 `tests/vendor-pdfjs.mjs` 生成 |
 | `docs/test-reports/` 里已提交的旧里程碑报告 | 只读（历史记录，不回头改） |
 
 ---
@@ -129,7 +141,7 @@ docs/
 
 | 仓库 | 主键 | 字段 | 状态 |
 |---|---|---|---|
-| `books` | `id`（`crypto.randomUUID()`） | `title`（文件名去掉 .txt）、`fileName`、`fileSize`（字节）、`encoding`（`utf-8` / `gbk` / `big5` / `utf-16le` / `utf-16be`）、`encodingSuspect`（布尔）、`totalLen`（全书字数）、`chapterCount`、`addedAt`（毫秒时间戳）、`lastReadAt`（没读过为 `null`） | 在用 |
+| `books` | `id`（`crypto.randomUUID()`） | `title`（文件名去掉 .txt 或 .pdf）、`fileName`、`fileSize`（字节）、`source`（`txt` / `pdf`，0.5.4 起；没有这个字段的旧书按 `txt`）、`encoding`（`utf-8` / `gbk` / `big5` / `utf-16le` / `utf-16be`；PDF 来的书为 `null`）、`encodingSuspect`（布尔）、`totalLen`（全书字数）、`chapterCount`、`addedAt`（毫秒时间戳）、`lastReadAt`（没读过为 `null`） | 在用 |
 | `tocs` | `bookId` | `entries`：`[{ title, len }]`，`len` 是该章字数 | 在用 |
 | `chapterGroups` | `[bookId, group]` | `texts`：这一组里每章的文本组成的数组（最多 50 个）；每章的文本是该章所有段落用换行符连接，不含标题行 | 在用 |
 | `progress` | `bookId` | `chapterIdx`、`offset`（屏幕上第一个可见的字在本章的序号）、`percent`（整数）、`updatedAt` | 在用 |
@@ -169,7 +181,7 @@ PBKDF2-SHA256 加盐摘要（不存图案本身）、连续画错次数、解禁
 
 ## ⑤ Service Worker 版本号规则
 
-- 版本号只有一处：`sw.js` 第一行的 `const VERSION = 'x.y.z';`。这一行的格式不要改，测试服务器靠它模拟新版本
+- 版本号只有一处：`sw.js` 开头注释之后的 `const VERSION = 'x.y.z';`。这一行的格式不要改，测试服务器靠它模拟新版本
 - **每次发布（push 到 main）只要 App 文件有变化，就必须改 `VERSION`**，否则已安装的手机拿不到新文件
 - 版本号写法：`0.<里程碑>.<该里程碑内第几次发布>`，例如 M1 的第 1 次发布是 `0.1.1`、M2 的第 1 次是 `0.2.1`；MVP 完成时为 `1.0.0`。（M0 用的是 `0.1.0`，是这条规则定下来之前发的，属于例外）
 - 缓存名是 `txt-reader-v<VERSION>`；新版本激活时删除所有其他 `txt-reader-v*` 缓存
@@ -218,6 +230,11 @@ PBKDF2-SHA256 加盐摘要（不存图案本身）、连续画错次数、解禁
   所以正文每 50 章存一条。以后往库里存「很多条小记录」的设计都要先想到这一点。实录：2026-11-14 M4，F4 导入 31 秒 → 0.9 秒。
 - **调起文件选择界面和系统分享面板，必须紧跟在用户的点击之后。** 所以导出备份分「生成备份」「保存到文件」两次点击（生成要读数据库，是异步的）；
   换编码时选完编码立刻 `input.click()`。真机上是否都能调起，见真机清单 M4。
+- **pdf.js 的标准版（`build/`）在 Node 里跑不了**（要浏览器的 API），调试抽字要在 Playwright 的 WebKit 页面里跑。另外这个版本释放文档用 `loadingTask.destroy()`，文档对象上没有 `destroy`。
+- **有的中文字体打印出的 PDF，常用字会被抽成部首字符**（「一」→ U+2F00 等，看着一样、编码不同）。实测「等线」会、微软雅黑 / 宋体 / 黑体 / 楷体不会。`pdf-layout.js` 的 `fixRadicals` 按 Unicode 对照表换回来，且必须在判断章节标题之前做。
+  NFKC 不够：部首补充区的「⻅」「⻓」它不认识。对照表里有 14 个字的目标在扩展 B 区（两个 UTF-16 单元），按下标两个两个取会错位——第一版就错了。
+- **用文件写入工具写含 `\u` 转义的源码时，转义可能被换成字符本身。** 写正则的字符范围用 `String.fromCharCode(0x...)` 拼，别依赖转义。实录：M5b 的 `fixRadicals` 第一版。
+- **测试数据要真的覆盖到规则。** M5b 反向验证时，「缩进分段」和「部首修正」两条规则删掉后测试仍然全绿：测试 PDF 里每段最后一行都偏短（另一条规则先分了段），换成微软雅黑后也没有部首字符了。补了专门的单元测试，P2 改用「等线」打印。
 - **不要等 `navigator.serviceWorker.register()` 完成再做别的事。** 断网时它在某些情况下一直不完成（既不成功也不报错）。版本号和更新检查用 `navigator.serviceWorker.ready` 拿注册信息。
   实录：2026-11-14 0.5.2 线上检查，「开启密码 → 刷新 → 解锁 → 切到后台再回来 → 断网 → 刷新」后版本号一直是「…」。M0 起就有，0.5.3 修。测试 `m5-offline-start.spec.js`。
 - **IndexedDB 删除数据库时的 `blocked` 事件不是失败。** 它只表示还有连接没关完（刚 `close()` 的连接上还有事务在跑时，close 会等它跑完），连接关完后删除会自己继续。

@@ -4,10 +4,10 @@
   "type": "module",
   "description": "只用于测试。App 本身不依赖 npm，这个目录不参与 App 运行。",
   "scripts": {
-    "fixtures": "node gen-fixtures.mjs",
+    "fixtures": "node gen-fixtures.mjs && node gen-pdf-fixtures.mjs",
     "unit": "node --test \"unit/*.test.mjs\"",
     "e2e": "playwright test",
-    "test": "node gen-fixtures.mjs && node --test \"unit/*.test.mjs\" && playwright test"
+    "test": "node gen-fixtures.mjs && node gen-pdf-fixtures.mjs && node --test \"unit/*.test.mjs\" && playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0"

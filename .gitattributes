@@ -1,2 +1,5 @@
 * text=auto eol=lf
 *.png binary
+
+# 第三方代码原样存放，不做换行转换（VERSION.md 里登记的 sha256 要和原文件逐字节一致）
+vendor/** -text

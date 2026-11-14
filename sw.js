@@ -3,10 +3,14 @@
 // 版本号规则（详见 CLAUDE.md）：
 //   1. 下面这一行是版本号的唯一来源。每次发布都必须改它。
 //   2. 新增、删除、改名任何 App 文件时，同步修改 ASSETS 清单。
-const VERSION = '0.5.3';
+//   3. pdf.js 的文件（vendor/pdfjs/，172 个）不手写在这里：清单由 tests/vendor-pdfjs.mjs 生成到
+//      vendor/pdfjs/assets.js，下面用 importScripts 读进来（self.PDFJS_ASSETS），安装时和 ASSETS 一起缓存。
+const VERSION = '0.5.4';
 
 const CACHE_PREFIX = 'txt-reader-v';
 const CACHE = CACHE_PREFIX + VERSION;
+
+importScripts('vendor/pdfjs/assets.js');
 
 // App 外壳的全部文件，路径相对于 sw.js 所在目录。
 const ASSETS = [
@@ -43,6 +47,10 @@ const ASSETS = [
   'js/importer/decode.js',
   'js/importer/parse.js',
   'js/importer/importer.js',
+  'js/importer/pdf-layout.js',
+  'js/importer/radicals.js',
+  'js/importer/pdf-extract.js',
+  'vendor/pdfjs/assets.js',
   'js/storage/db.js',
   'js/storage/books.js',
   'js/storage/progress.js',
@@ -57,7 +65,8 @@ self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     // cache: 'reload' 跳过浏览器的 HTTP 缓存，保证拿到的是服务器上的最新文件。
-    await cache.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' })));
+    const all = [...ASSETS, ...self.PDFJS_ASSETS];
+    await cache.addAll(all.map((url) => new Request(url, { cache: 'reload' })));
   })());
   // 这里不调用 skipWaiting：新版本要等用户点「刷新」才接管。
 });

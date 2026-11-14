@@ -158,9 +158,9 @@ test('文件选择框不限制类型；选了非 txt 文件时不导入，并说
   await waitImportDone(page);
   const dialog = page.getByRole('dialog', { name: '导入结果' });
   await expect(dialog).toContainText('成功 1 本');
-  await expect(dialog).toContainText('照片.jpg：不是 txt 文件');
+  await expect(dialog).toContainText('照片.jpg：不是 txt 或 pdf 文件');
   await expect(dialog).toContainText('失败 2 本');
-  await expect(dialog).toContainText('笔记txt：不是 txt 文件');
+  await expect(dialog).toContainText('笔记txt：不是 txt 或 pdf 文件');
   await dialog.getByRole('button', { name: '知道了' }).click();
   expect(await shelfTitles(page)).toEqual([titleOf('F2')]);
 });
