@@ -1,10 +1,11 @@
 // 入口：启动页面、注册 Service Worker、提示新版本。
 import { setupShelf, renderShelf } from './shelf.js';
-import { setupReader, openReader } from './reader/reader.js';
+import { setupReader, openReader, closeReader } from './reader/reader.js';
 import { recoverJournal } from './storage/progress.js';
 import { loadSettings } from './settings.js';
 import { setupBackupPanel } from './backup-panel.js';
 import { showActionToast } from './ui/toast.js';
+import { setupLock } from './lock/lock-screen.js';
 
 const UPDATE_TOAST_ID = 'update-toast';
 
@@ -76,6 +77,8 @@ function requestPersistentStorage() {
 }
 
 blockZoom();
+// 手势密码最先处理：开启了就立刻显示锁屏页，后面的启动步骤在锁屏页底下照常进行。
+setupLock({ beforeWipe: closeReader });
 requestPersistentStorage();
 // 设置要在显示任何内容之前读好（主题、阅读模式、字号）。读失败就用默认值。
 await loadSettings().catch(() => {});

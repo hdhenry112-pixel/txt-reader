@@ -1,6 +1,6 @@
 # 交接文档
 
-**写于**：2026-11-14，M4 发布并经 Henry 真机验证通过之后。
+**写于**：2026-11-14，M4 发布并经 Henry 真机验证通过之后。**更新于** 2026-11-14：M5a 手势密码发布（0.5.1）。
 **给谁看**：接手这个项目的下一个对话（可能换了模型）。Henry 也可以用它回顾现状。
 
 读的顺序：本文件 → `CLAUDE.md`（项目约定和踩过的坑，必读）→ `docs/spec-m5.md`（下一步要做的）→ 需要时再看 `docs/spec-mvp.md` 和各里程碑的测试报告。
@@ -11,11 +11,11 @@
 
 | 项 | 状态 |
 |---|---|
-| 线上版本 | **0.4.1**，`https://hdhenry112-pixel.github.io/txt-reader/` |
+| 线上版本 | **0.5.1**，`https://hdhenry112-pixel.github.io/txt-reader/` |
 | 仓库 | GitHub `hdhenry112-pixel/txt-reader`，public，分支 `main`，GitHub Pages 从 `main` 根目录发布 |
 | 本地目录 | `D:\Claude Code\4-APP\PWA-reader` |
 | 工作区 | 干净，全部已提交并推送 |
-| 测试 | 44 项单元测试 + 49 项端到端测试，全部通过 |
+| 测试 | 51 项单元测试 + 70 项端到端测试，全部通过（M5a 新增 7 + 21） |
 | 数据库 | IndexedDB schema 版本 2 |
 
 **已完成的里程碑**
@@ -27,6 +27,7 @@
 | M2 | 0.2.1 | 滚动模式、目录、进度 | 没有逐项回填 |
 | M3 | 0.3.1 / 0.3.2 | 翻页模式、设置、主题 | 没有逐项回填 |
 | M4 | 0.4.1 | 备份恢复、换编码、大文件、数据库迁移 | **Henry 2026-11-14 说「M4 验证通过」** |
+| M5a | 0.5.1 | 九宫格手势密码 | 等 Henry 真机验证（`docs/device-checklist.md` 的 M5a 一节） |
 
 「没有逐项回填」的意思是：Henry 一直在用，后续的版本他都更新了，没有反馈问题，但 `docs/device-checklist.md` 里的「结果」列是空的。不要把它当成逐项确认过。
 
@@ -34,15 +35,14 @@
 
 | 里程碑 | 内容 | 状态 |
 |---|---|---|
-| M5a | 九宫格手势密码 | spec 写好了（`docs/spec-m5.md`），**待 Henry 确认** |
-| M5b | 文字型 PDF 导入 | 同上 |
+| M5b | 文字型 PDF 导入 | spec 已确认（2026-11-14），没开始 |
 | M6 | 收尾：全量回归、文档补全、最终真机清单，版本 1.0.0 | 没开始 |
 
 ## 2. 下一步怎么做
 
-1. **先让 Henry 确认 `docs/spec-m5.md`。** 里面第 ⑦ 节有 5 条待确认，每条都有建议。他回复确认之前不许写代码（这是他的硬规则）。
-2. 确认后把 spec 的状态改成「已确认（日期）」，按 spec 第 ③ 节的顺序做：
-   - **M5a 手势密码 → 发布 0.5.1**
+1. `docs/spec-m5.md` 已于 2026-11-14 确认（第 ⑦ 节 5 条全部按建议）。M5a 已发布 0.5.1，报告在 `docs/test-reports/M5/report.md`。
+2. 接下来：
+   - 等 Henry 做 M5a 的真机清单；他如果要「切到后台就遮住画面」（真机清单第 12 项下面的说明），先登记进 spec 再做
    - **M5b PDF → 发布 0.5.2**。开工第一件事：查 pdf.js 官方文档，确定版本、需要哪些文件、总大小，把实际大小告诉 Henry，再往下做。
 3. 每次发布的固定流程（前四个里程碑都是这么走的）：
    1. 写代码；新增文件同步加进 `sw.js` 的 `ASSETS`
@@ -100,8 +100,9 @@ node serve.mjs                    # 本地看页面：http://localhost:4173/txt-
 5. **调文件选择界面和系统分享面板，必须紧跟用户的点击**，中间不能有异步等待
 6. **每次发布只要 App 文件变了就必须改 `sw.js` 的 `VERSION`**；新增文件必须加进 `ASSETS`
 7. **写 IndexedDB 的耗时取决于记录条数**（每条约 15 毫秒），不取决于内容多少
-8. **两种阅读模式是同一套接口**，`reader.js` 不区分。PDF 来的书存成和 txt 一样的结构，所以阅读页不用改
-9. App 启动完成后 `<html>` 上有 `data-ready="1"`，测试用 `waitAppReady()` 等它
+8. **手势密码存在 localStorage 的 `txt-reader:lock`**，不在 IndexedDB、不进备份。键名在 `js/lock-boot.js` 和 `js/lock/lock-store.js` 两处
+9. **两种阅读模式是同一套接口**，`reader.js` 不区分。PDF 来的书存成和 txt 一样的结构，所以阅读页不用改
+10. App 启动完成后 `<html>` 上有 `data-ready="1"`，测试用 `waitAppReady()` 等它
 
 ## 6. 已知的小问题（都没处理，Henry 没提）
 
@@ -125,12 +126,12 @@ node serve.mjs                    # 本地看页面：http://localhost:4173/txt-
 |---|---|
 | `CLAUDE.md` | 项目约定：交付门槛、技术约束、文件结构、数据模型、版本号规则、踩过的坑 |
 | `docs/spec-mvp.md` | M0–M4 的需求和验收锚点；第 ⑧ 节是变更记录 C1–C12 |
-| `docs/spec-m5.md` | M5 的需求和验收锚点（待确认） |
+| `docs/spec-m5.md` | M5 的需求和验收锚点（2026-11-14 确认）；第 ⑨ 节是变更记录 |
 | `docs/DEPLOY.md` | GitHub Pages 设置、发布步骤、iPhone 添加到主屏幕 |
 | `docs/device-checklist.md` | 每个里程碑的真机检查清单 |
-| `docs/test-reports/M0`…`M4/report.md` | 每个里程碑的测试结果、发现的问题、反向验证、原始输出、截图 |
+| `docs/test-reports/M0`…`M5/report.md` | 每个里程碑的测试结果、发现的问题、反向验证、原始输出、截图 |
 
 ## 9. 新对话的开场白（Henry 可以直接贴）
 
 > 这是 TXT 阅读器项目（iOS PWA），目录 `D:\Claude Code\4-APP\PWA-reader`。
-> 请先读 `docs/HANDOFF.md`、`CLAUDE.md`、`docs/spec-m5.md`，然后把 `docs/spec-m5.md` 第 ⑦ 节的 5 条待确认事项列给我，我确认后再开始做 M5a（手势密码）。
+> 请先读 `docs/HANDOFF.md`、`CLAUDE.md`、`docs/spec-m5.md`，然后开始做 M5b（PDF 导入）。第一步先查 pdf.js 的版本、需要的文件和总大小，告诉我再往下做。

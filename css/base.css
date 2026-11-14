@@ -202,3 +202,103 @@ button.toast { text-align: center; }
   font-size: 16px;
   cursor: pointer;
 }
+
+/* M5 起：手势密码。锁屏页和设置图案的页面共用 .pattern-screen */
+.pattern-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(env(safe-area-inset-top) + 24px) 24px calc(env(safe-area-inset-bottom) + 24px);
+  background: var(--bg);
+  color: var(--text);
+  touch-action: none;
+}
+
+.pattern-screen[hidden] { display: none; }
+
+#lock-screen { z-index: 300; }
+
+.pattern-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.pattern-hint {
+  min-height: 1.5em;
+  margin: 0 0 24px;
+  color: var(--accent-strong);
+  font-size: 15px;
+  text-align: center;
+}
+
+.pattern-host {
+  width: min(78vw, 300px);
+  aspect-ratio: 1;
+}
+
+.pattern-pad {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pattern-pad.disabled { opacity: 0.35; }
+
+.pattern-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pattern-lines polyline {
+  fill: none;
+  stroke: var(--accent-main);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pattern-pad.error .pattern-lines polyline { stroke: var(--accent-strong); }
+
+.pattern-dot {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  background: var(--line);
+  pointer-events: none;
+}
+
+.pattern-dot.on {
+  background: var(--accent-main);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent-main) 25%, transparent);
+}
+
+.pattern-pad.error .pattern-dot.on {
+  background: var(--accent-strong);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent-strong) 25%, transparent);
+}
+
+.pattern-link {
+  margin-top: 32px;
+  min-height: 44px;
+  padding: 0 16px;
+  color: var(--accent-sub);
+  font-size: 15px;
+}
+
+/* 上锁期间：除了锁屏页和从锁屏页弹出的框，其他内容都看不见、点不到 */
+html[data-locked] body > *:not(#lock-screen):not(.over-lock) { visibility: hidden; }
+
+.dialog-backdrop.over-lock { z-index: 400; }

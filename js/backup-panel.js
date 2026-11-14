@@ -1,4 +1,4 @@
-// 备份与恢复的面板。
+// 书架右上角「更多」打开的面板：备份、恢复、手势密码（手势密码那一节在 lock/lock-setup.js）。
 //
 // 导出分两步：先「生成备份」，生成好了再点「保存到文件」。
 // 原因：iOS 只允许在用户点击之后立刻调起系统分享面板；生成备份要读数据库，是异步的，
@@ -6,6 +6,7 @@
 import { listBooks } from './storage/books.js';
 import { buildBackup, restoreBackup, estimateBytes, formatSize, BackupError, SIZE_WARN_BYTES } from './backup.js';
 import { confirmDialog, infoDialog } from './ui/dialog.js';
+import { setupLockSection, refreshLockSection } from './lock/lock-setup.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -118,7 +119,10 @@ async function onRestoreFileChosen(input) {
 export async function openBackupPanel() {
   clearReady();
   $('backup-include-text').checked = false;
+  refreshLockSection();
   $('backup-panel').hidden = false;
+  // 面板比屏幕高，可以滚动；每次打开都从顶上开始，不停在上次滚到的位置。
+  $('backup-panel').querySelector('.dialog').scrollTop = 0;
   await refreshEstimate();
 }
 
@@ -130,7 +134,8 @@ export function closeBackupPanel() {
 /** 只需调用一次。onRestored 在恢复成功之后调用（用来刷新书架）。 */
 export function setupBackupPanel({ onRestored }) {
   afterRestore = onRestored;
-  $('backup-button').addEventListener('click', openBackupPanel);
+  $('more-button').addEventListener('click', openBackupPanel);
+  setupLockSection();
   $('backup-close').addEventListener('click', closeBackupPanel);
   $('backup-build').addEventListener('click', onBuild);
   $('backup-save').addEventListener('click', onSave);

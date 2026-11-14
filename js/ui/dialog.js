@@ -1,9 +1,11 @@
 // 页面内的弹层。不用浏览器原生的 alert / confirm。
 
-function open({ title, lines = [], buttons, vertical = false }) {
+function open({ title, lines = [], buttons, vertical = false, overLock = false }) {
   return new Promise((resolve) => {
     const backdrop = document.createElement('div');
     backdrop.className = 'dialog-backdrop';
+    // 从锁屏页弹出的框要盖在锁屏页上面，并且上锁期间不被隐藏（见 base.css）。
+    if (overLock) backdrop.classList.add('over-lock');
 
     const box = document.createElement('div');
     box.className = 'dialog';
@@ -41,10 +43,11 @@ function open({ title, lines = [], buttons, vertical = false }) {
 }
 
 /** 确认框。点确认返回 true，点取消返回 false。danger 为真时确认按钮用强调色。 */
-export function confirmDialog({ title, lines, okText = '确定', cancelText = '取消', danger = false }) {
+export function confirmDialog({ title, lines, okText = '确定', cancelText = '取消', danger = false, overLock = false }) {
   return open({
     title,
     lines,
+    overLock,
     buttons: [
       { label: cancelText, value: false },
       { label: okText, value: true, kind: danger ? 'danger' : 'primary' },
@@ -66,6 +69,6 @@ export function choiceDialog({ title, lines, choices }) {
 }
 
 /** 只有一个「知道了」按钮的信息框。 */
-export function infoDialog({ title, lines }) {
-  return open({ title, lines, buttons: [{ label: '知道了', value: true, kind: 'primary' }] });
+export function infoDialog({ title, lines, overLock = false }) {
+  return open({ title, lines, overLock, buttons: [{ label: '知道了', value: true, kind: 'primary' }] });
 }

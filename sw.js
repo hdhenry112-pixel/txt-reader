@@ -3,7 +3,7 @@
 // 版本号规则（详见 CLAUDE.md）：
 //   1. 下面这一行是版本号的唯一来源。每次发布都必须改它。
 //   2. 新增、删除、改名任何 App 文件时，同步修改 ASSETS 清单。
-const VERSION = '0.4.1';
+const VERSION = '0.5.1';
 
 const CACHE_PREFIX = 'txt-reader-v';
 const CACHE = CACHE_PREFIX + VERSION;
@@ -23,6 +23,12 @@ const ASSETS = [
   'js/backup.js',
   'js/backup-panel.js',
   'js/theme-boot.js',
+  'js/lock-boot.js',
+  'js/lock/rules.js',
+  'js/lock/lock-store.js',
+  'js/lock/pad.js',
+  'js/lock/lock-screen.js',
+  'js/lock/lock-setup.js',
   'js/settings.js',
   'js/settings-panel.js',
   'js/reader/page-mode.js',

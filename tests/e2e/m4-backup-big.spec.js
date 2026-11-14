@@ -20,8 +20,8 @@ const tapAbovePanel = (page) => tapAt(page, 0.5, 0.2);
 
 /** 导出一份备份，返回存到磁盘上的文件路径。 */
 async function exportBackup(page, testInfo, { includeText }) {
-  await page.getByRole('button', { name: '备份', exact: true }).click();
-  const panel = page.getByRole('dialog', { name: '备份与恢复' });
+  await page.getByRole('button', { name: '更多', exact: true }).click();
+  const panel = page.getByRole('dialog', { name: '更多' });
   await expect(panel).toBeVisible();
   if (includeText) await panel.getByLabel('包含书的正文').check();
   await panel.getByRole('button', { name: '生成备份' }).click();
@@ -40,11 +40,11 @@ async function exportBackup(page, testInfo, { includeText }) {
 
 /** 选一个备份文件来恢复，返回结果弹层里的文字。 */
 async function restoreFrom(page, file) {
-  // 恢复失败后面板会留着（方便换一个文件再试），这时不用再点「备份」。
+  // 恢复失败后面板会留着（方便换一个文件再试），这时不用再点「更多」。
   if (await page.locator('#backup-panel').isHidden()) {
-    await page.getByRole('button', { name: '备份', exact: true }).click();
+    await page.getByRole('button', { name: '更多', exact: true }).click();
   }
-  await expect(page.getByRole('dialog', { name: '备份与恢复' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: '更多' })).toBeVisible();
   await page.locator('#restore-input').setInputFiles(file);
   const result = page.getByRole('dialog', { name: /恢复完成|恢复失败/ });
   await expect(result).toBeVisible({ timeout: 120_000 });
@@ -101,7 +101,7 @@ test('R1：含正文的备份 → 清空全部数据 → 恢复，书、目录�
   const before = await prepareState(page);
   expect(before.progress.chapterIdx).toBe(7);
   expect(before.progress.offset).toBeGreaterThan(0);
-  await page.getByRole('button', { name: '备份', exact: true }).click();
+  await page.getByRole('button', { name: '更多', exact: true }).click();
   await shot(page, 'M4', '01-备份面板');
   await page.getByRole('button', { name: '关闭' }).click();
 
@@ -271,8 +271,8 @@ test('包含正文的备份预计超过 100MB 时先警告，点取消就不生�
   await page.reload();
   await waitAppReady(page);
 
-  await page.getByRole('button', { name: '备份', exact: true }).click();
-  const panel = page.getByRole('dialog', { name: '备份与恢复' });
+  await page.getByRole('button', { name: '更多', exact: true }).click();
+  const panel = page.getByRole('dialog', { name: '更多' });
   // 不含正文：很小，直接生成，不警告。
   await expect(page.locator('#backup-size')).toHaveText('约 1 KB');
   // 勾上正文：4000 万字 × 3 字节 = 1.2 亿字节 ≈ 114.4MB。

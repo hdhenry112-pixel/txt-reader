@@ -8,8 +8,8 @@
 
 **需求和验收标准**：[docs/spec-mvp.md](docs/spec-mvp.md)（2026-11-13 确认）。改需求要在 spec 末尾的「变更记录」里登记，不许悄悄改。
 
-**当前进度**：M0–M4 完成，线上版本 0.4.1。M4 已经 Henry 真机验证通过（2026-11-14）。
-下一步 M5：九宫格手势密码（M5a）和文字型 PDF 导入（M5b），需求在 [docs/spec-m5.md](docs/spec-m5.md)，**状态是待确认，Henry 确认之前不要动手**。
+**当前进度**：M0–M4 完成，M4 已经 Henry 真机验证通过（2026-11-14）。M5a 手势密码完成，版本 0.5.1（2026-11-14），等 Henry 真机验证。
+下一步 M5b：文字型 PDF 导入。需求在 [docs/spec-m5.md](docs/spec-m5.md)（2026-11-14 确认）。开工第一件事是查 pdf.js 的版本、文件和总大小，告诉 Henry 再往下做。
 接手这个项目先读 [docs/HANDOFF.md](docs/HANDOFF.md)。
 
 ---
@@ -62,9 +62,10 @@ js/
   shelf.js              书架页：列表、排序、导入入口、点书打开、「等待重新导入」的提示
   book-actions.js       每本书的「更多操作」：换编码重新导入、删除
   backup.js             备份的生成和恢复（数据层），备份文件格式写在文件开头
-  backup-panel.js       备份与恢复的面板
+  backup-panel.js       书架右上角「更多」打开的面板：备份、恢复（手势密码那一节在 lock/lock-setup.js）
   wakelock.js           屏幕常亮
   theme-boot.js         普通脚本（非模块），在 <head> 里同步执行：启动时先套上次的主题，避免闪白底
+  lock-boot.js          普通脚本（非模块），在 <head> 里同步执行：开启了手势密码就先标记 data-locked，避免闪一下书架
   settings.js           设置的默认值、范围、读取、保存、套用主题
   settings-panel.js     设置面板的界面
   reader/
@@ -74,6 +75,12 @@ js/
     page-mode.js        翻页模式：CSS columns 分页、点击区域、滑动
     menu.js             顶部栏和底部栏
     toc.js              目录面板
+  lock/
+    rules.js            手势密码的规则（纯函数）：中间点自动连上、至少 4 个点、连错 5 次等 30 秒、离开 5 分钟要重画
+    lock-store.js       手势密码的存储（localStorage）：PBKDF2 加盐摘要、错误次数、解禁时间
+    pad.js              九宫格画板（按下拖过各点、松手提交）
+    lock-screen.js      锁屏页：启动时和离开前台 ≥ 5 分钟后上锁；忘记图案 = 清空全部数据
+    lock-setup.js       「更多」面板里的手势密码一节：开启、修改、关闭
   normalize.js          段落整理（纯函数）
   chapterizer.js        分章（纯函数），含切分字数等常量
   importer/
@@ -81,11 +88,11 @@ js/
     parse.js            字节 → 可入库的书（纯函数，串起 decode / normalize / chapterizer）
     importer.js         导入流程：逐本处理、重复判断、入库、认领等待中的进度；换编码重新导入
   storage/
-    db.js               打开数据库、迁移函数数组
+    db.js               打开数据库、迁移函数数组、删除整个数据库（忘记图案用）
     books.js            books / tocs / chapterGroups 的读写；章节分组只在这个文件里可见
     progress.js         progress 和 pending 的读写；位置日志（localStorage）
   ui/
-    dialog.js           页面内的确认框和信息框
+    dialog.js           页面内的确认框和信息框；overLock 为真时盖在锁屏页上面
     toast.js            提示条
 icons/                  由 tests/gen-icons.mjs 生成
 tests/
@@ -145,6 +152,10 @@ App 启动时如果它还在，说明上次数据库没写成，由 `recoverJour
 
 **另一处：设置日志。** `localStorage` 的 `txt-reader:settings-journal`，内容是整份设置。和位置日志同理：改设置时先同步写它，
 数据库写成功后擦掉；启动时如果还在，每一项按「日志 → 数据库 → 默认值」的顺序取第一个合法的值，再补进数据库。
+
+**另一处：手势密码。** `localStorage` 的 `txt-reader:lock`，没开启时不存在。内容 `{ v, salt, hash, iterations, fails, until }`：
+PBKDF2-SHA256 加盐摘要（不存图案本身）、连续画错次数、解禁时间（毫秒时间戳）。不进 IndexedDB、不进备份；恢复备份不改它。
+放在 localStorage 的原因：`js/lock-boot.js` 要在第一帧之前同步读到它。键名写在 `lock-boot.js` 和 `lock/lock-store.js` 两处，要改两处一起改。
 
 **另一处：主题副本。** `localStorage` 的 `txt-reader:theme`，是 `settings.theme` 的副本，只给 `js/theme-boot.js` 在启动第一帧之前读。
 正式的值在 IndexedDB；两者不一致时以 IndexedDB 为准（`loadSettings()` 会覆盖副本）。
@@ -207,6 +218,12 @@ App 启动时如果它还在，说明上次数据库没写成，由 `recoverJour
   所以正文每 50 章存一条。以后往库里存「很多条小记录」的设计都要先想到这一点。实录：2026-11-14 M4，F4 导入 31 秒 → 0.9 秒。
 - **调起文件选择界面和系统分享面板，必须紧跟在用户的点击之后。** 所以导出备份分「生成备份」「保存到文件」两次点击（生成要读数据库，是异步的）；
   换编码时选完编码立刻 `input.click()`。真机上是否都能调起，见真机清单 M4。
+- **IndexedDB 删除数据库时的 `blocked` 事件不是失败。** 它只表示还有连接没关完（刚 `close()` 的连接上还有事务在跑时，close 会等它跑完），连接关完后删除会自己继续。
+  `deleteDatabase()` 里只在 10 秒仍没删掉时才报错。实录：2026-11-14 M5a，第一版把 `blocked` 当失败，「读书中被锁 → 忘记图案」报「数据库被另一个页面占用」，是端到端测试抓到的。
+- **测「在第一帧之前就生效」的东西，不能在 `DOMContentLoaded` 时检查。** 那时模块脚本（`app.js`）已经执行完了。要在 `<body>` 刚插进文档时检查（`MutationObserver`，见 `m5-lock.spec.js` 的 K1 补充）。
+  实录：M5a 反向验证时把 `lock-boot.js` 清空，第一版测试照样过。
+- **电脑上的浏览器测不了真的切 App。** 「切到后台 / 回到前台」在测试里是改写 `document.visibilityState` 再发 `visibilitychange` 事件（`m5-lock.spec.js` 的 `setVisibility`），时间用 `page.clock` 控制。真机上的切换要看真机清单。
+- **shell 命令里不要用双引号包含反引号的文字**（比如 `node -e "..."` 里写 Markdown）。bash 会把反引号里的内容当命令执行。改文档用脚本文件或文件写入工具。实录：M5a 改文档时出过一次，好在命令都失败了、没有写入。
 - **用脚本批量改文件前先把 CRLF 换行统一成 LF。** 这个仓库在 Windows 上签出后工作区是 CRLF，多行的查找文本对不上。实录：M4 一次批量修改因此整体失败（好在是报错而不是静默跳过）。
 - **端到端测试里不要「点某个元素」来模拟点正文。** Playwright 点元素前会先把它滚到可见位置，等于替用户滚了屏，位置相关的断言全错。
   用 `page.mouse.click` 点屏幕固定坐标（`m2-reader.spec.js` 的 `tapText`）。

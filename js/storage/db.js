@@ -108,3 +108,22 @@ export function getDb() {
   dbPromise ??= openDb();
   return dbPromise;
 }
+
+/**
+ * 删除整个数据库（「忘记图案」用）。先关掉 App 自己的连接，否则删除会被挡住。
+ * 删除失败时抛错，调用方据此决定不要继续清别的数据。
+ */
+export async function deleteDatabase() {
+  if (dbPromise) {
+    try { (await dbPromise).close(); } catch { /* 本来就没打开成功 */ }
+    dbPromise = null;
+  }
+  await new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DB_NAME);
+    // blocked 不是失败：它只表示还有连接没关完（比如刚关掉的连接上还有事务在跑，close() 会等它跑完）。
+    // 连接关完后删除会自己继续。所以这里只在等了很久仍没删掉时才报错。
+    const timer = setTimeout(() => reject(new Error('数据库被另一个页面占用，请关掉其他窗口后重试')), 10_000);
+    request.onsuccess = () => { clearTimeout(timer); resolve(); };
+    request.onerror = () => { clearTimeout(timer); reject(request.error); };
+  });
+}

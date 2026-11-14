@@ -14,6 +14,7 @@
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <meta name="theme-color" content="#F2F1EC">
   <script src="js/theme-boot.js"></script>
+  <script src="js/lock-boot.js"></script>
   <link rel="stylesheet" href="css/themes.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/shelf.css">
@@ -24,7 +25,7 @@
     <header class="topbar">
       <h1>书架</h1>
       <div class="topbar-actions">
-        <button id="backup-button" class="ghost-button" type="button">备份</button>
+        <button id="more-button" class="ghost-button" type="button">更多</button>
         <label class="import-button">
         导入
         <!-- 故意不写 accept：写了以后 iOS 文件选择界面里 Google Drive 位置显示 Content Unavailable。
@@ -112,8 +113,8 @@
   </main>
 
   <div id="backup-panel" class="dialog-backdrop" hidden>
-    <div class="dialog" role="dialog" aria-modal="true" aria-label="备份与恢复">
-      <h2>备份与恢复</h2>
+    <div class="dialog" role="dialog" aria-modal="true" aria-label="更多">
+      <h2>更多</h2>
 
       <h3>导出</h3>
       <p>导出书架、阅读进度和设置。</p>
@@ -142,10 +143,34 @@
         </label>
       </div>
 
+      <h3>手势密码</h3>
+      <p id="lock-status"></p>
+      <div class="dialog-buttons">
+        <button id="lock-enable" type="button">开启</button>
+        <button id="lock-change" type="button" hidden>修改</button>
+        <button id="lock-disable" type="button" hidden>关闭密码</button>
+      </div>
+
       <div class="dialog-buttons">
         <button id="backup-close" type="button">关闭</button>
       </div>
     </div>
+  </div>
+
+  <!-- 设置手势密码时画图案的页面。 -->
+  <div id="pattern-sheet" class="pattern-screen" role="dialog" aria-modal="true" aria-label="设置手势密码" hidden>
+    <h2 id="sheet-title" class="pattern-title"></h2>
+    <p id="sheet-hint" class="pattern-hint" role="status"></p>
+    <div id="sheet-pad" class="pattern-host"></div>
+    <button id="sheet-cancel" class="pattern-link" type="button">取消</button>
+  </div>
+
+  <!-- 锁屏页。上锁期间 <html data-locked="1">，除它和 .over-lock 的弹层以外的内容都被隐藏。 -->
+  <div id="lock-screen" class="pattern-screen" role="dialog" aria-modal="true" aria-label="解锁" hidden>
+    <h2 class="pattern-title">画图案解锁</h2>
+    <p id="lock-hint" class="pattern-hint" role="status"></p>
+    <div id="lock-pad" class="pattern-host"></div>
+    <button id="lock-forget" class="pattern-link" type="button">忘记图案</button>
   </div>
 
   <div id="toast-host" class="toast-host" aria-live="polite"></div>
