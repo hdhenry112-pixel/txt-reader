@@ -8,7 +8,7 @@
 
 **需求和验收标准**：[docs/spec-mvp.md](docs/spec-mvp.md)（2026-11-13 确认）。改需求要在 spec 末尾的「变更记录」里登记，不许悄悄改。
 
-**当前进度**：M0–M4 完成，M4 已经 Henry 真机验证通过（2026-11-14）。M5a 手势密码完成：0.5.1 手势密码，0.5.2 加「切到后台时遮挡画面」（spec-m5 C3），0.5.3 修「断网启动时版本号不显示」（C4）。2026-11-14 发布，等 Henry 真机验证。M5b 文字型 PDF 导入完成，版本 0.5.4。**M5 已经 Henry 真机验证通过（2026-11-14）。**
+**当前进度**：M0–M4 完成，M4 已经 Henry 真机验证通过（2026-11-14）。M5a 手势密码完成：0.5.1 手势密码，0.5.2 加「切到后台时遮挡画面」（spec-m5 C3），0.5.3 修「断网启动时版本号不显示」（C4）。2026-11-14 发布，等 Henry 真机验证。M5b 文字型 PDF 导入完成，版本 0.5.4。**M5 已经 Henry 真机验证通过（2026-11-14）。** 之后 0.5.5：修复字符对照表错误的 PDF、拦住乱码 PDF（spec-m5 C8、C9），等 Henry 真机验证。
 需求在 [docs/spec-m5.md](docs/spec-m5.md)（2026-11-14 确认，变更 C1–C7）。下一步 M6（收尾，1.0.0），范围等 Henry 确认。
 接手这个项目先读 [docs/HANDOFF.md](docs/HANDOFF.md)。
 
@@ -90,6 +90,11 @@ js/
     pdf-extract.js      用 pdf.js 抽每页的文字片段（导入 PDF 时才加载 pdf.js；逐页处理、处理完就释放）
     pdf-layout.js       PDF 文字片段 → 段落（纯函数）：合成行、去页眉页脚、分段、修正部首字符
     radicals.js         部首字符 → 常用汉字的对照表，由 tests/gen-radicals.mjs 从 Unicode 官方数据生成
+    pdf-repair.js       修复字符对照表（ToUnicode）写错的 PDF：以嵌入字体自己的 cmap 为准，用增量更新追加正确的对照表
+    pdf-objects.js      读 PDF 对象（够修字体用）：普通对象、对象流、FlateDecode、RC4 解密
+    pdf-fonts.js        ToUnicode 和 TrueType cmap 的解析、比对、生成（纯函数）
+    pdf-crypto.js       MD5、RC4、PDF 标准安全处理器（V1/V2、R2/R3、空用户密码）
+    garble.js           判断抽出来的文字是不是乱码：GB2312 一级字比例（纯函数）
     importer.js         导入流程：按扩展名分 txt / PDF、逐本处理、重复判断、入库、认领等待中的进度；换编码重新导入
   storage/
     db.js               打开数据库、迁移函数数组、删除整个数据库（忘记图案用）
@@ -108,6 +113,7 @@ tests/
   gen-fixtures.mjs      生成 spec ④ 的测试文件 F1–F9 到 tests/fixtures/（不进仓库）
   gen-pdf-fixtures.mjs  用 Chromium 打印生成 PDF 测试文件 P1–P7、G11 到 tests/fixtures/（spec-m5 ④）
   vendor-pdfjs.mjs      登记 vendor/pdfjs/：生成 assets.js 和 VERSION.md
+  gen-broken-pdf.mjs    把 P1 弄坏成 P8（对照表打乱）、P9（再加 RC4 加密）。刻意不用 App 的代码
   gen-radicals.mjs      生成 js/importer/radicals.js（需要 Unicode 的 EquivalentUnifiedIdeograph.txt）
   gen-icons.mjs         生成图标
   mutate.mjs            反向验证工具：把源码改坏一处 / 还原（见 ⑧）
@@ -235,6 +241,12 @@ PBKDF2-SHA256 加盐摘要（不存图案本身）、连续画错次数、解禁
   NFKC 不够：部首补充区的「⻅」「⻓」它不认识。对照表里有 14 个字的目标在扩展 B 区（两个 UTF-16 单元），按下标两个两个取会错位——第一版就错了。
 - **用文件写入工具写含 `\u` 转义的源码时，转义可能被换成字符本身。** 写正则的字符范围用 `String.fromCharCode(0x...)` 拼，别依赖转义。实录：M5b 的 `fixRadicals` 第一版。
 - **测试数据要真的覆盖到规则。** M5b 反向验证时，「缩进分段」和「部首修正」两条规则删掉后测试仍然全绿：测试 PDF 里每段最后一行都偏短（另一条规则先分了段），换成微软雅黑后也没有部首字符了。补了专门的单元测试，P2 改用「等线」打印。
+- **有的 PDF 自带的字符对照表（ToUnicode）是错的，显示正常、抽出来是乱码。** 实测：Word 用微软雅黑导出的《三体》精校版，3566 条里 1559 条错，Poppler、pdfminer 抽出来同样是乱码。嵌入字体自己的 cmap 是对的，`pdf-repair.js` 按它修。
+  诊断这类问题先用别的工具（本机有 `pdftotext`、Python 的 `pdfminer`）抽一次：它们也乱，就是 PDF 本身的问题。
+- **不改 pdf.js、又要改 PDF 内容时，用「增量更新」**：在文件末尾追加新对象和新的交叉引用表（`/Prev` 指向原来的），原来的字节不动。加密的 PDF 里，新加的流也要用该对象号的密钥加密。
+- **PDF 的 /DescendantFonts 可能是指向数组对象的引用**（`/DescendantFonts 16536 0 R`，对象 16536 是 `[16535 0 R]`），不一定直接写数组。M5b 补充第一版就漏了这种写法。
+- **Playwright 给 WebKit 的 `setInputFiles` 传 E 盘上带中文的路径时，文件读不出来**（「The object can not be found here」）。同一个文件拷到 ASCII 路径就好。原因没细查。真机上文件来自系统的文件选择界面，不涉及这个。
+- **测试数据的「弄坏」和 App 的「修好」要用两套独立的实现**（`tests/gen-broken-pdf.mjs` 不 import App 的代码，MD5 用 Node 自带的）。否则两边同一个错会互相抵消。
 - **不要等 `navigator.serviceWorker.register()` 完成再做别的事。** 断网时它在某些情况下一直不完成（既不成功也不报错）。版本号和更新检查用 `navigator.serviceWorker.ready` 拿注册信息。
   实录：2026-11-14 0.5.2 线上检查，「开启密码 → 刷新 → 解锁 → 切到后台再回来 → 断网 → 刷新」后版本号一直是「…」。M0 起就有，0.5.3 修。测试 `m5-offline-start.spec.js`。
 - **IndexedDB 删除数据库时的 `blocked` 事件不是失败。** 它只表示还有连接没关完（刚 `close()` 的连接上还有事务在跑时，close 会等它跑完），连接关完后删除会自己继续。

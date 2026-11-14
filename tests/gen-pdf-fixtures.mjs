@@ -3,10 +3,11 @@
 // 每一段的原文来自 gen-fixtures.mjs 的 para()，所以测试能逐字比对。确定值，不用随机数。
 // 用法：node gen-pdf-fixtures.mjs    产物写到 tests/fixtures/（不进仓库）
 import { chromium } from '@playwright/test';
-import { mkdirSync, writeFileSync, existsSync, statSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { FIXTURE_DIR, para } from './gen-fixtures.mjs';
+import { breakToUnicode, encryptRc4 } from './gen-broken-pdf.mjs';
 
 const CN = '一二三四五六七八九十';
 
@@ -34,6 +35,11 @@ export const PDF_FILES = {
     name: 'P5-三页.pdf', header: null, pageNumbers: true, breakEachPara: true, pages: { exact: 3 },
     chapters: [{ title: '第一章', paras: 3 }],
   },
+  // C9：正文全是 GB2312 二级字（生僻字，但微软雅黑里有字形），抽出来要被判定为乱码
+  P10: {
+    name: 'P10-生僻字.pdf', header: '测试书名', pageNumbers: true, pages: { min: 1 }, rare: true,
+    chapters: [{ title: '第一章', paras: 5 }],
+  },
   G11: {
     name: 'G11-五百页.pdf', header: '测试书名', pageNumbers: true, pages: { min: 500 },
     chapters: Array.from({ length: 100 }, (_, i) => ({ title: `第${i + 1}章`, paras: 18 })),
@@ -42,6 +48,9 @@ export const PDF_FILES = {
 
 /** 不用浏览器生成的边界文件。 */
 export const OTHER_FILES = {
+  // C8：在 P1 的基础上把正文字体的 ToUnicode 打乱（P8），再加 RC4 加密（P9）。内容和 P1 相同
+  P8: 'P8-对照表错乱.pdf',
+  P9: 'P9-对照表错乱-加密.pdf',
   B2: 'B2-其实是文本.pdf',
   B3: 'B3-图片.jpg',
   P7: 'P7-标准字体.pdf',
@@ -57,6 +66,17 @@ export const expectedParas = (key, c) =>
 
 const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
+/** GB2312 二级字（区 56–87），按字节顺序取，第 i 段（从 1 起）取 100 个。确定值。 */
+function rarePara(c, i) {
+  const bytes = [];
+  for (let hi = 0xD8; hi <= 0xF7 && bytes.length < 2 * 100 * 60; hi++) {
+    for (let lo = 0xA1; lo <= 0xFE; lo++) bytes.push(hi, lo);
+  }
+  const all = new TextDecoder('gbk').decode(new Uint8Array(bytes));
+  const start = ((c - 1) * 10 + (i - 1)) * 100;
+  return all.slice(start, start + 100);
+}
+
 function htmlOf(spec, key) {
   const font = spec.font ? `"${spec.font}", ` : '';
   if (spec.blankPages) {
@@ -67,7 +87,8 @@ function htmlOf(spec, key) {
     const title = ch.title ? `<h2>${escape(ch.title)}</h2>` : '';
     const paras = Array.from({ length: ch.paras }, (_, i) => {
       const brk = spec.breakEachPara && i > 0 ? ' style="break-before:page"' : '';
-      return `<p${brk}>${escape(para(key, c + 1, i + 1, 'hans'))}</p>`;
+      const text = spec.rare ? rarePara(c + 1, i + 1) : para(key, c + 1, i + 1, 'hans');
+      return `<p${brk}>${escape(text)}</p>`;
     }).join('');
     return title + paras;
   }).join('');
@@ -136,6 +157,11 @@ export async function generatePdfFixtures() {
   } finally {
     await browser.close();
   }
+  // P8 / P9：由 P1 弄坏（实现见 gen-broken-pdf.mjs，不用 App 的代码）
+  const broken = breakToUnicode(readFileSync(pdfPath('P1')));
+  if (broken.swapped < 40) throw new Error(`P8 只打乱了 ${broken.swapped} 条，太少`);
+  writeFileSync(pdfPath('P8'), broken.bytes);
+  writeFileSync(pdfPath('P9'), encryptRc4(broken.bytes));
   writeFileSync(pdfPath('B2'), '这是一个文本文件，只是扩展名写成了 pdf。\n第二行。\n', 'utf8');
   writeFileSync(pdfPath('B3'), Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00]));
   writeFileSync(pdfPath('P7'), standardFontPdf());

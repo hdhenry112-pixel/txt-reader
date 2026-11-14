@@ -5,7 +5,7 @@
 //   2. 新增、删除、改名任何 App 文件时，同步修改 ASSETS 清单。
 //   3. pdf.js 的文件（vendor/pdfjs/，172 个）不手写在这里：清单由 tests/vendor-pdfjs.mjs 生成到
 //      vendor/pdfjs/assets.js，下面用 importScripts 读进来（self.PDFJS_ASSETS），安装时和 ASSETS 一起缓存。
-const VERSION = '0.5.4';
+const VERSION = '0.5.5';
 
 const CACHE_PREFIX = 'txt-reader-v';
 const CACHE = CACHE_PREFIX + VERSION;
@@ -49,6 +49,11 @@ const ASSETS = [
   'js/importer/importer.js',
   'js/importer/pdf-layout.js',
   'js/importer/radicals.js',
+  'js/importer/garble.js',
+  'js/importer/pdf-crypto.js',
+  'js/importer/pdf-objects.js',
+  'js/importer/pdf-fonts.js',
+  'js/importer/pdf-repair.js',
   'js/importer/pdf-extract.js',
   'vendor/pdfjs/assets.js',
   'js/storage/db.js',

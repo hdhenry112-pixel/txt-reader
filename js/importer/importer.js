@@ -2,6 +2,8 @@
 import { parseBook, bookFromParagraphs, titleFromFileName, ImportError } from './parse.js';
 import { extractPages } from './pdf-extract.js';
 import { pagesToParagraphs } from './pdf-layout.js';
+import { checkGarbled } from './garble.js';
+import { repairPdf } from './pdf-repair.js';
 import { findBookByFile, saveBook, saveBookRaw, getBook } from '../storage/books.js';
 import { takePending, putProgressRecord, fileKeyOf } from '../storage/progress.js';
 
@@ -10,8 +12,12 @@ const isPdf = (fileName) => /\.pdf$/i.test(fileName);
 
 /** PDF 的字节 → 可入库的书。PDF 来的书没有编码一说，encoding 记 null。 */
 async function parsePdf(bytes, onPage) {
-  const paras = pagesToParagraphs(await extractPages(bytes, onPage));
+  // 字符对照表写错了的 PDF 先修好（spec-m5 C8）；正常的 PDF 原样返回
+  const { bytes: fixed } = await repairPdf(bytes);
+  const paras = pagesToParagraphs(await extractPages(fixed, onPage));
   if (paras.length === 0) throw new ImportError('这个 PDF 里没有可提取的文字（可能是扫描版）');
+  // 抽出来的字大多是生僻字：PDF 的字符对照表有错，抽出来是乱码，不让它进书架（spec-m5 C9）
+  if (checkGarbled(paras).garbled) throw new ImportError('这个 PDF 的文字编码有错（常见于 Word 导出的 PDF），抽出来是乱码，请换一个版本');
   return { encoding: null, encodingSuspect: false, ...bookFromParagraphs(paras) };
 }
 
