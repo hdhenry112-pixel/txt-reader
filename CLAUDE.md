@@ -9,7 +9,7 @@
 **需求和验收标准**：[docs/spec-mvp.md](docs/spec-mvp.md)（2026-11-13 确认）。改需求要在 spec 末尾的「变更记录」里登记，不许悄悄改。
 
 **当前进度**：M0–M4 完成，M4 已经 Henry 真机验证通过（2026-11-14）。M5a 手势密码完成：0.5.1 手势密码，0.5.2 加「切到后台时遮挡画面」（spec-m5 C3），0.5.3 修「断网启动时版本号不显示」（C4）。2026-11-14 发布，等 Henry 真机验证。M5b 文字型 PDF 导入完成，版本 0.5.4。**M5 已经 Henry 真机验证通过（2026-11-14）。** 之后 0.5.5：修复字符对照表错误的 PDF、拦住乱码 PDF（spec-m5 C8、C9），等 Henry 真机验证。
-需求在 [docs/spec-m5.md](docs/spec-m5.md)（2026-11-14 确认，变更 C1–C7）。下一步 M6（收尾，1.0.0），范围等 Henry 确认。
+需求在 [docs/spec-m5.md](docs/spec-m5.md)（2026-11-14 确认，变更 C1–C9）。**M6 收尾完成，发布 1.0.0**（[docs/spec-m6.md](docs/spec-m6.md)，2026-11-14 确认），等 Henry 按真机清单「1.0.0 最终检查」过一遍。
 接手这个项目先读 [docs/HANDOFF.md](docs/HANDOFF.md)。
 
 ---
@@ -119,11 +119,12 @@ tests/
   mutate.mjs            反向验证工具：把源码改坏一处 / 还原（见 ⑧）
   playwright.config.js  WebKit + iPhone 15 视口
   unit/                 纯函数的单元测试（node:test），直接 import js/ 下的模块
-  e2e/                  端到端测试；helpers.js 是通用工具，reader-helpers.js 是阅读页的操作（打开书、点屏幕、跳章）
+  e2e/                  端到端测试；helpers.js 是通用工具，reader-helpers.js 是阅读页的操作（打开书、点屏幕、跳章）；m6-full-flow 是从头到尾一次走完的全流程
 docs/
   HANDOFF.md            交接文档：现状、下一步、环境、协作要点
   spec-mvp.md           M0–M4 的需求和验收标准
   spec-m5.md            M5（手势密码、PDF）的需求和验收标准
+  spec-m6.md            M6（收尾，1.0.0）的需求和验收标准
   DEPLOY.md             部署步骤、iPhone 添加到主屏幕步骤
   device-checklist.md   真机检查清单
   test-reports/         每个里程碑的测试输出和截图
@@ -258,6 +259,8 @@ PBKDF2-SHA256 加盐摘要（不存图案本身）、连续画错次数、解禁
 - **用脚本批量改文件前先把 CRLF 换行统一成 LF。** 这个仓库在 Windows 上签出后工作区是 CRLF，多行的查找文本对不上。实录：M4 一次批量修改因此整体失败（好在是报错而不是静默跳过）。
 - **端到端测试里不要「点某个元素」来模拟点正文。** Playwright 点元素前会先把它滚到可见位置，等于替用户滚了屏，位置相关的断言全错。
   用 `page.mouse.click` 点屏幕固定坐标（`m2-reader.spec.js` 的 `tapText`）。
+- **点设置按钮后，排版要等设置写进数据库之后才变**（`js/settings-panel.js` 的 `onClick`：先 `await` 写库，再通知阅读页）。测试里量排版要用 `expect.poll` 反复量，不能点完立刻量一次。
+  实录：2026-11-14 M6，全流程测试第一次通过是因为前面截图花的时间刚好够；截图已存在、`shot()` 跳过后就量早了，页边距读到旧值。
 - **界面切换后要等内容更新完再断言。** 跳章后等新章标题出现；回书架后用会重试的 `expect(locator).toHaveText()`，不要立刻读一次文字。
   实录：M2 首轮 5 项失败全是这两类测试脚本问题，其中「书架排序」之前能过是碰巧。
 - **反向验证用 `tests/mutate.mjs`**，它在改之前确认目标文本正好出现 1 次，找不到就报错。不要用 sed：M1 时 sed 没匹配上、代码没变，我差点把「测试是绿的」当成了验证通过。
