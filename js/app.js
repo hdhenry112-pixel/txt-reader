@@ -44,10 +44,18 @@ function offerUpdate(reg) {
   });
 }
 
-async function setupServiceWorker() {
+function setupServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
-  const reg = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
+  // 不等 register() 完成再做后面的事：断网时它在某些情况下一直不完成（既不成功也不报错），
+  // 等它的话版本号和更新检查都不执行（spec-m5 C4，0.5.2 线上检查发现）。
+  // 后面的事只需要「已经激活的注册信息」，用 ready 拿：装过的 App 马上就有，首次安装在激活后才有。
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
+  navigator.serviceWorker.ready.then(watchForUpdates);
+  showVersion();
+}
 
+/** 监视新版本：装好等待中就提示「有新版本」；每次回到前台检查一次。 */
+function watchForUpdates(reg) {
   // 「有新版本」的判定：有一个 worker 装好了在等待（waiting），同时还有一个旧的在运行（active）。
   // 首次安装时 worker 装好后直接激活，不会停在 waiting，所以不会误提示。
   // 不能用「事件发生时页面是否已被控制」来判断：WebKit 会把 updatefound 和 statechange
@@ -67,8 +75,6 @@ async function setupServiceWorker() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') reg.update().catch(() => {});
   });
-
-  showVersion();
 }
 
 /** 申请持久存储，降低系统在空间紧张时清掉书和进度的可能。被拒绝也不影响使用。 */

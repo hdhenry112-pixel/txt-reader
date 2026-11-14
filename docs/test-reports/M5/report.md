@@ -251,4 +251,50 @@ commit `2d1da17` 推送后，对线上地址跑检查脚本（在 0.5.1 的脚�
 
 影响：断网启动时底部版本号显示「…」，这次启动不会检查新版本。读书、锁屏、解锁不受影响（上表各项都过了）。
 
-修法（还没做，等 Henry 决定）：`showVersion()` 和挂更新检查不再等 `register()` 完成——`showVersion()` 本来只依赖 `navigator.serviceWorker.ready`，它在这种状态下是正常的。再加一条端到端测试，按上面复现的顺序断言断网后版本号出现。
+修法（Henry 回复「现在修」，在 0.5.3 修了，见下一节）：`showVersion()` 和挂更新检查不再等 `register()` 完成——`showVersion()` 本来只依赖 `navigator.serviceWorker.ready`，它在这种状态下是正常的。再加一条端到端测试，按上面复现的顺序断言断网后版本号出现。
+
+---
+
+# 补充：0.5.3 修复断网启动时版本号不显示（spec-m5 C4）
+
+**日期**：2026-11-14　**版本**：0.5.3
+
+## 改动
+
+`js/app.js` 的 `setupServiceWorker()`：
+- 以前：`await register()` → 挂更新检查 → `showVersion()`。register 卡住时后面都不执行
+- 现在：调用 `register()` 但不等它（失败也不报错）；更新检查挂在 `navigator.serviceWorker.ready` 拿到的注册信息上；`showVersion()` 直接调用（它本来就只依赖 `ready`）
+
+## 测试（先写测试、确认在旧代码上是红的，再改代码）
+
+新文件 `tests/e2e/m5-offline-start.spec.js`：
+
+| 测试 | 做法 | 旧代码 | 新代码 |
+|---|---|---|---|
+| C4-1 | 把 `register()` 换成永远不完成的 Promise，断网刷新，断言版本号出现。直接制造根因，不靠时机 | 红（版本号是「…」） | 过 |
+| C4-2 | 按 0.5.2 线上检查复现过的顺序：开启密码 → 刷新 → 解锁 → 切到后台再回来 → 等 2 秒 → 断网 → 刷新，断言版本号出现、还能解锁 | 红（版本号是「…」） | 过 |
+
+另做了一处反向验证：去掉「挂更新检查」那一行，M0 的「发布新版本后出现提示」测试变红。说明改了挂法以后更新提示仍被测试守着。
+M0 的「首次安装不应出现更新提示」也照常通过。
+
+## 全量运行
+
+`cd tests && npm test`：
+
+```
+ℹ tests 51
+ℹ pass 51
+ℹ fail 0
+  76 passed (2.7m)
+```
+
+按文件：m0-shell 4、m1-import 9、m2-reader 12、m3-page-settings 13、m4-backup-big 11、m5-lock 25、m5-offline-start 2。
+
+## 仍然不知道的
+
+- 为什么那一串操作之后 `register()` 会卡住（WebKit 内部的原因）。这次的修法不依赖知道原因：不管 register 卡不卡，版本号和更新检查都不等它
+- iPhone 上是否遇到过。真机清单加了第 16 项
+
+## 线上检查
+
+（待填）
