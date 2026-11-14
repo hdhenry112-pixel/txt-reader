@@ -316,7 +316,7 @@ P2 和 P3 用不同章是为了去相关：各章字数互不相同，目录序�
 - [x] 更新流程：版本 1 运行中 → 服务器换成版本 2 → 出现「有新版本」提示 → 点击后页面运行版本 2，之前导入的书和进度都在
 - [x] 全流程 console 无报错（M6，`tests/e2e/m6-full-flow.spec.js`）
 - [x] 每个里程碑全量回归通过（见各里程碑报告）
-- [ ] Henry 在真机上按 `docs/device-checklist.md` 过完并确认 —— **未勾**：M4、M5 Henry 已确认通过；「1.0.0 最终检查」一节等 Henry 过完再勾
+- [x] Henry 在真机上按 `docs/device-checklist.md` 过完并确认（M4、M5 已确认；「1.0.0 最终检查」Henry 2026-11-14 答复「通过」）
 - [x] CLAUDE.md、DEPLOY.md 与最终代码一致（M6 核对，见 `docs/test-reports/M6/report.md`）
 
 **禁止为通过检查而修改源码。** 发现门槛或锚点写错了，就提出来改 spec，不许绕过。
