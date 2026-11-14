@@ -113,6 +113,7 @@ node serve.mjs                    # 本地看页面：http://localhost:4173/txt-
 - Big5 的书直接导入是乱码且不会标「编码可能有误」（设计如此，要手动换编码）
 - 整本书没有换行的 txt 会成为单独一章，可能很慢
 - 100MB 以上的备份能不能真的导出成功没有测过
+- **断网启动时底部版本号可能一直显示「…」**：某些情况下 `navigator.serviceWorker.register()` 断网时一直不完成，`js/app.js` 等它，后面的 `showVersion()` 和更新检查都不执行。M0 起就有，0.5.2 线上检查时发现，排查见 `docs/test-reports/M5/report.md` 末尾。读书不受影响。**还没修，等 Henry 决定**
 - 恢复备份时整个文件读进内存，很大的备份在 iPhone 上可能失败
 
 ## 7. 以后可能做的功能（Henry 没有要求，只是当初列过）
