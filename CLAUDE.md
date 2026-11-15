@@ -9,7 +9,7 @@
 **需求和验收标准**：[docs/spec-mvp.md](docs/spec-mvp.md)（2026-11-13 确认）。改需求要在 spec 末尾的「变更记录」里登记，不许悄悄改。
 
 **当前进度**：M0–M4 完成，M4 已经 Henry 真机验证通过（2026-11-14）。M5a 手势密码完成：0.5.1 手势密码，0.5.2 加「切到后台时遮挡画面」（spec-m5 C3），0.5.3 修「断网启动时版本号不显示」（C4）。2026-11-14 发布，等 Henry 真机验证。M5b 文字型 PDF 导入完成，版本 0.5.4。**M5 已经 Henry 真机验证通过（2026-11-14）。** 之后 0.5.5：修复字符对照表错误的 PDF、拦住乱码 PDF（spec-m5 C8、C9），等 Henry 真机验证。
-需求在 [docs/spec-m5.md](docs/spec-m5.md)（2026-11-14 确认，变更 C1–C9）。**M6 收尾完成，发布 1.0.0**（[docs/spec-m6.md](docs/spec-m6.md)，2026-11-14 确认）。**1.0.0 已经 Henry 真机验证通过（2026-11-14）。**
+需求在 [docs/spec-m5.md](docs/spec-m5.md)（2026-11-14 确认，变更 C1–C9）。**M6 收尾完成，发布 1.0.0**（[docs/spec-m6.md](docs/spec-m6.md)，2026-11-14 确认）。**1.0.0 已经 Henry 真机验证通过（2026-11-14）。** 1.0.1：分章规则修正（[docs/spec-1.0.1.md](docs/spec-1.0.1.md)，2026-11-15 确认），等 Henry 真机验证。
 接手这个项目先读 [docs/HANDOFF.md](docs/HANDOFF.md)。
 
 ---
@@ -125,6 +125,7 @@ docs/
   spec-mvp.md           M0–M4 的需求和验收标准
   spec-m5.md            M5（手势密码、PDF）的需求和验收标准
   spec-m6.md            M6（收尾，1.0.0）的需求和验收标准
+  spec-1.0.1.md         1.0.1（分章规则修正）的需求和验收标准
   DEPLOY.md             部署步骤、iPhone 添加到主屏幕步骤
   device-checklist.md   真机检查清单
   test-reports/         每个里程碑的测试输出和截图

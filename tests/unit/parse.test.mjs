@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { FILES, FIXTURE_DIR, para } from '../gen-fixtures.mjs';
 import { parseBook, ImportError, titleFromFileName } from '../../js/importer/parse.js';
-import { isTitle } from '../../js/chapterizer.js';
+import { isTitle, chapterize } from '../../js/chapterizer.js';
 import { toParagraphs } from '../../js/normalize.js';
 import { decodeBytes } from '../../js/importer/decode.js';
 
@@ -134,6 +134,39 @@ test('标题判定的三个条件各自生效', () => {
   // 不在行首的不算；「第」后面不是数字的不算。
   assert.equal(isTitle('他翻到第三章 往下读'), false);
   assert.equal(isTitle('第一次见面'), false);
+});
+
+// ---- spec-1.0.1 ④ 的锚点 ----
+const chs = (paras) => chapterize(paras).map((c) => [c.title, c.len]);
+
+test('1.0.1 R1：「第X章完」不是标题，留在上一章末尾', () => {
+  assert.equal(isTitle('第一百六十五章完'), false);
+  assert.equal(isTitle('第三章 完'), false);
+  assert.equal(isTitle('第三章完美'), true);
+  assert.equal(isTitle('第三章 完结'), true);
+  assert.deepEqual(chs(['第一章 甲', 'x'.repeat(100), '第一章完', '第二章 乙', 'y'.repeat(50)]),
+    [['第一章 甲', 104], ['第二章 乙', 50]]);
+});
+
+test('1.0.1 R2：行尾日期不计入 30 个字', () => {
+  const w = (n) => '字'.repeat(n);
+  assert.equal(isTitle('第一章' + w(27) + ' 10／12／2004－10／16／2004'), true);
+  assert.equal(isTitle('第一章' + w(28) + ' 1/5/2004'), false);
+  assert.equal(isTitle('第一章' + w(27) + '８／２０／２００３'), true);
+  assert.equal(isTitle('第一章' + w(20) + ' 1/5/2004 ' + w(5)), false);
+  assert.equal(isTitle('第一章' + w(27) + ' 2004年1月5日'), false);
+});
+
+test('1.0.1 R3：紧挨着的同一章标题合并', () => {
+  assert.deepEqual(chs(['第五章 甲', '短', '第五章 甲 1/2/2004', 'x'.repeat(300), '第六章 乙', 'y'.repeat(100)]),
+    [['第五章 甲', 315], ['第六章 乙', 100]]);
+  // 边界：前一章正文 199 字合并，正好 200 字不合并。
+  assert.deepEqual(chs(['第五章 甲', 'x'.repeat(199), '第五章 甲', 'y'.repeat(10)]),
+    [['第五章 甲', 199 + 5 + 10]]);
+  assert.deepEqual(chs(['第五章 甲', 'x'.repeat(200), '第五章 甲', 'y'.repeat(10)]),
+    [['第五章 甲', 200], ['第五章 甲', 10]]);
+  // 「第一卷」和「第一章」不是同一章，照旧分开。
+  assert.deepEqual(chs(['第一卷', '第一章 x', 'z'.repeat(10)]), [['第一卷', 0], ['第一章 x', 10]]);
 });
 
 test('标题后面紧跟另一个标题：前一个成为 0 字的章，不丢失', () => {

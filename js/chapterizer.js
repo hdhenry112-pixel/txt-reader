@@ -13,10 +13,29 @@ const TITLE_START = new RegExp(
   'i',
 );
 const NOT_TITLE_END = /[。，；、：]$/;
+/** 「第X章」部分，R3 用它判断两个标题是不是同一章。 */
+const LABEL = new RegExp(`^第${NUM}[章回节卷]`);
+/** R1：「第X章完」是结束语，不是标题。 */
+const END_MARK = new RegExp(`^第${NUM}[章回节卷]\\s*完$`);
+/** R2：行尾的日期或日期范围，数字数时不算。例：9／6／2003、10／12／2004－10／16／2004。 */
+const DATE = '[0-9０-９]{1,4}[/／][0-9０-９]{1,2}[/／][0-9０-９]{1,4}';
+const DATE_TAIL = new RegExp(`\\s*${DATE}(\\s*[-－—~～至]\\s*${DATE})?\\s*$`);
+/** R3：前一章正文不到这么多字时，同一章的第二个标题行并进来。 */
+export const DUP_TITLE_MAX_GAP = 200;
 
-/** 判断一个段落（已去掉首尾空白）是不是章节标题。三个条件要同时满足。 */
+/** 判断一个段落（已去掉首尾空白）是不是章节标题。规则见 spec-mvp ③「分章」和 spec-1.0.1 ③。 */
 export function isTitle(line) {
-  return line.length <= MAX_TITLE_LEN && !NOT_TITLE_END.test(line) && TITLE_START.test(line);
+  if (END_MARK.test(line)) return false;
+  const core = line.replace(DATE_TAIL, '');
+  return core.length <= MAX_TITLE_LEN && !NOT_TITLE_END.test(line) && TITLE_START.test(line);
+}
+
+/** 当前章已经有标题、和这一行是同一个「第X章」、且当前章正文不到 DUP_TITLE_MAX_GAP 字。 */
+function isRepeatedTitle(current, line) {
+  if (!current?.title) return false;
+  const a = current.title.match(LABEL);
+  const b = line.match(LABEL);
+  return !!a && !!b && a[0] === b[0] && lengthOf(current.paras) < DUP_TITLE_MAX_GAP;
 }
 
 const lengthOf = (paras) => paras.reduce((sum, p) => sum + p.length, 0);
@@ -49,7 +68,7 @@ export function chapterize(paras) {
   const raw = [];
   let current = null;
   for (const p of paras) {
-    if (isTitle(p)) {
+    if (isTitle(p) && !isRepeatedTitle(current, p)) {
       current = { title: p, paras: [] };
       raw.push(current);
     } else {
